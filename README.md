@@ -1,6 +1,6 @@
 # Maps Region Switcher
 
-A Chrome (MV3) extension that loads Google Maps as it appears in another
+A Chrome extension and Firefox add-on that loads Google Maps as it appears in another
 country, by setting Google's own `gl` region parameter.
 
 The motivating case: Google Maps renders certain place names, labels, and
@@ -61,13 +61,15 @@ The icon itself carries the state, with no text overlaid on it:
 
 The error state deliberately keeps the color icon rather than going grey, so
 "broken" never looks like "the user switched it off". State is read back from
-`chrome.declarativeNetRequest.getDynamicRules()` after every write, so the icon
-reflects the rules Chrome actually holds rather than what was intended.
+`chrome.declarativeNetRequest.getDynamicRules()` (`browser.declarativeNetRequest.getDynamicRules()`
+on Firefox -- background.js picks the right namespace at runtime, see Layout)
+after every write, so the icon reflects the rules the browser actually holds
+rather than what was intended.
 
 ## How it works
 
-Two dynamic `declarativeNetRequest` rules, rebuilt from `chrome.storage.sync`
-whenever the popup changes a setting:
+Two dynamic `declarativeNetRequest` rules, rebuilt from `chrome.storage.local`
+(`browser.storage.local` on Firefox) whenever the popup changes a setting:
 
 | Rule | Priority | Action | Matches |
 | --- | --- | --- | --- |
@@ -98,10 +100,10 @@ gl=CA:   ...!3i792558794!3m7!2sen!5e1105!12m4...
 That's real and inherent — different labels require different tiles — but it's
 a one-time refetch per tile, not the zoom-blanking behaviour above.
 
-The guard rule is the loop protection. Without it we would be relying on Chrome
-silently dropping a redirect whose transform yields an identical URL; an
-explicit higher-priority `allow` is the deterministic way to stop processing a
-request that has already been rewritten.
+The guard rule is the loop protection. Without it we would be relying on the
+browser silently dropping a redirect whose transform yields an identical URL;
+an explicit higher-priority `allow` is the deterministic way to stop processing
+a request that has already been rewritten.
 
 The region has to be present on the **initial document request**, which is why
 this is DNR and not a content script — a content script runs long after the
@@ -118,15 +120,26 @@ After loading unpacked:
    selected region.
 3. **No redirect loop.** This is the one failure mode worth checking explicitly.
    Reload the Maps tab several times and navigate between a few places. You must
-   never see `ERR_TOO_MANY_REDIRECTS`. Confirm the guard rule is installed by
-   running this in the service worker console (`chrome://extensions` →
-   *service worker*):
+   never see a redirect-loop error page (Chrome shows `ERR_TOO_MANY_REDIRECTS`;
+   Firefox shows "The page isn't redirecting properly"). Confirm the guard rule
+   is installed:
+
+   **Chrome** — open `chrome://extensions`, click the extension's *service
+   worker* link to open its console, and run:
 
    ```js
    await chrome.declarativeNetRequest.getDynamicRules()
    ```
 
-   Expect two rules, ids `1` and `2`.
+   **Firefox** — open `about:debugging#/runtime/this-firefox`, click
+   **Inspect** next to the loaded extension to open its toolbox, switch to the
+   Console tab, and run:
+
+   ```js
+   await browser.declarativeNetRequest.getDynamicRules()
+   ```
+
+   Either way, expect two rules, ids `1` and `2`.
 4. **Rule matching.** `npm test` — or `node tools/test-rules.mjs` — checks both
    regexes against a corpus of real Maps URL shapes without needing a browser.
 
@@ -137,17 +150,18 @@ memory — only full reloads re-trigger the rule.
 
 ## Settings storage
 
-Settings live in `chrome.storage.local`, deliberately not `chrome.storage.sync`.
-A cold `storage.sync` read waits on Chrome's account sync engine and can take
-several seconds; that latency sat directly in front of the popup's first render,
-so the toggle showed no state until it resolved. Three local preferences are not
-worth a multi-second popup, so they no longer follow you between devices.
+Settings live in `chrome.storage.local` (`browser.storage.local` on Firefox),
+deliberately not `storage.sync`. A cold `storage.sync` read waits on the
+browser's account sync engine and can take several seconds; that latency sat
+directly in front of the popup's first render, so the toggle showed no state
+until it resolved. Three local preferences are not worth a multi-second popup,
+so they no longer follow you between devices.
 
 ### Popup first paint
 
-`chrome.storage.local` is async, and its first call in a browser session pays
-the backing store's cold-open cost, which sat directly in front of the toggle
-showing any state.
+`chrome.storage.local` (`browser.storage.local` on Firefox) is async, and its
+first call in a browser session pays the backing store's cold-open cost, which
+sat directly in front of the toggle showing any state.
 
 So the popup keeps a `localStorage` mirror of the settings. localStorage is
 synchronous and available to extension pages, so the toggle renders correct in
@@ -186,9 +200,24 @@ every Maps load.
 - **Framing.** List this as a general-purpose region switcher, which is what
   it is -- a broad, narrowly-scoped listing described by its mechanism is
   easier for reviewers to evaluate than one built around a single example.
+- **Firefox minimum version.** `strict_min_version` must be `142.0`. Three
+  stacked reasons, not one: ES-module background scripts need Firefox 128+;
+  the built-in data-collection consent UI needs Firefox for desktop 140+; and
+  `data_collection_permissions` itself needs Firefox for **Android** 142+ --
+  `strict_min_version` sets the floor for both platforms unless a separate
+  `gecko_android` block overrides it, so the single version number has to
+  clear the highest of the three.
+- **Firefox data disclosure.** Declared in the manifest itself, not just the
+  listing form: `browser_specific_settings.gecko.data_collection_permissions:
+  { "required": ["none"] }` (required by AMO for all new extensions since
+  2025-11-03).
+- **Firefox source code.** AMO requires a source package only when the build
+  minifies, bundles, or otherwise transforms the code before shipping it.
+  `tools/build.mjs` does a plain copy plus a manifest merge -- what ships is
+  exactly what's in `src/` -- so no source package is needed.
 
-None of the above is legal advice, and Google's terms are Google's to interpret
-and enforce.
+None of the above is legal advice, and Google's and Mozilla's terms are theirs
+to interpret and enforce.
 
 ## Layout
 
