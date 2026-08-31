@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Region Switcher",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "description": "View Google Maps as it appears in another country by setting the region parameter on Maps page loads.",
   "permissions": [
     "declarativeNetRequestWithHostAccess",
