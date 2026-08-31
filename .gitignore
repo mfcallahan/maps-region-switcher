@@ -85,6 +85,10 @@ out
 dist
 .output
 
+# dist_prod/ is intentionally tracked -- pre-built, ready-to-load
+# extension folders + zips for people who just clone the repo.
+!dist_prod/
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js

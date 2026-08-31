@@ -27,24 +27,68 @@ to a Maps URL changes region-dependent content exactly as Google serves it for
 that region, including certain place labels, attribution text, and interface
 language, with no additional handling required on the extension's part.
 
-## Install (unpacked)
+## Install without an extension store
 
-Run `npm run build` first -- it assembles `dist/chrome/` and `dist/firefox/`
-from the shared `src/` tree plus the matching `manifests/manifest.<target>.json`
-(see Layout below). Load the built folder, not `src/` directly.
+The Chrome Web Store and AMO (Firefox) listings go through store review before
+they're publicly installable, so here's the fastest way to run it directly in
+the meantime -- no store account, no waiting on approval, no build step.
 
-**Chrome**
-1. Open `chrome://extensions`.
-2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked** and select `dist/chrome/`.
-4. Pin the extension. The toolbar icon is full color when active, grey when off.
+**Clone this repo** -- `dist_prod/` is already built and committed, so
+there's nothing to install or run first.
 
-**Firefox**
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on...** and select `dist/firefox/manifest.json`.
-3. Pin the extension the same way. This load is temporary -- it's removed on~
-   restart, which is expected for local testing. `npm run firefox:run` (via
-   `web-ext`) reloads on every save instead of doing this by hand each time.
+### Chrome
+
+1. Type `chrome://extensions` into the address bar and press Enter.
+2. Turn on **Developer mode**, the toggle in the top-right corner.
+3. Click **Load unpacked** and select the `dist_prod/chrome` folder.
+4. The extension appears in your list, with its icon in the toolbar's
+   puzzle-piece overflow menu. Click the pin icon next to it to keep it
+   visible. The icon is full color when active, grey when off.
+
+Chrome shows a one-time banner warning that "Developer mode extensions" are
+less safe -- expected for anything installed outside the Web Store, including
+this one before it's approved. Leave Developer mode turned on; switching it
+off disables sideloaded extensions.
+
+### Firefox
+
+1. Type `about:debugging#/runtime/this-firefox` into the address bar and
+   press Enter.
+2. Click **Load Temporary Add-on...** and select `dist_prod/firefox/manifest.json`.
+3. The extension loads immediately and its icon appears in the toolbar. Pin
+   it the same way as any other Firefox toolbar icon.
+
+The catch: this is a *temporary* install, and Firefox removes it the next
+time the browser fully quits and reopens -- you'll repeat these three steps
+each session until the AMO listing is approved. That's a Firefox restriction
+on unsigned extensions, not something this project can work around.
+
+**Want it to survive restarts before the listing is approved?** Install
+[Firefox Developer Edition](https://www.mozilla.org/firefox/developer/) or
+Nightly instead of regular Firefox -- release Firefox always enforces
+signature checks and cannot skip this step:
+1. Type `about:config`, accept the risk warning, and search for
+   `xpinstall.signatures.required`.
+2. Set it to `false`.
+3. Go to `about:addons`, click the gear icon, choose **Install Add-on From
+   File...**, and select `dist_prod/maps-region-switcher-<version>-firefox.zip`.
+
+### Prefer a zip you can hand to someone else?
+
+`dist_prod/` also has `maps-region-switcher-<version>-chrome.zip` and
+`-firefox.zip` sitting next to the unpacked folders -- unzip either one
+(double-click on macOS or Windows) and use it the same way as the
+`dist_prod/chrome` or `dist_prod/firefox` folder above.
+
+### Building it yourself (developers)
+
+`npm run build` builds `dist/chrome/` and `dist/firefox/` (see Layout below),
+zips each, and syncs the built folders plus zips into `dist_prod/` -- so
+`dist_prod/` always matches `src/` after a build. Run it after any source
+change and commit the result. `npm run build:chrome` / `build:firefox` build
+just one target into `dist/` without touching `dist_prod/`, for quicker
+local iteration on a single browser. `npm run firefox:run` (via `web-ext`)
+reloads Firefox on every save instead of using `about:debugging` by hand.
 
 ## Toolbar icon
 
@@ -237,10 +281,14 @@ manifests/
   manifest.chrome.json    background.service_worker
   manifest.firefox.json   background.scripts + browser_specific_settings
 tools/
-  build.mjs         assembles dist/chrome/ and dist/firefox/ from the above
-  make_icons.py     regenerates both icon sets (stdlib only)
-  test-rules.mjs    regex corpus test + manifest/asset checks (both targets)
+  build.mjs           assembles dist/chrome/ and dist/firefox/ from the above,
+                      and zips each into dist/maps-region-switcher-<ver>-<target>.zip
+  sync-dist-prod.mjs  copies dist/{chrome,firefox}/ + zips into dist_prod/
+  make_icons.py       regenerates both icon sets (stdlib only)
+  test-rules.mjs      regex corpus test + manifest/asset checks (both targets)
 dist/               build output, gitignored -- run `npm run build`
+dist_prod/          committed, ready-to-load snapshot for people who just
+                    clone the repo -- `npm run build` keeps it in sync
 ```
 
 ## License
