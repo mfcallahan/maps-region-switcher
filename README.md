@@ -7,13 +7,13 @@ The motivating case: Google Maps renders certain place names, labels, and
 other content differently depending on which region it associates with your
 view. That variation is Google's own region-dependent behavior, not universal
 across regions, so switching the region parameter changes which version you
-see -- using Google's own rendering for that region, not a workaround or an
+see, using Google's own rendering for that region, not a workaround or an
 overlay.
 
 ![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot2.png)
 
 <sup>Google Maps at `gl=CA`, rendered by Google exactly as it serves the map to
-Canada — the extension only asks for that version, it does not draw anything.</sup>
+Canada. The extension only asks for that version, it does not draw anything.</sup>
 
 ## Why this approach?
 
