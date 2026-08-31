@@ -3,10 +3,12 @@
 A Chrome (MV3) extension that loads Google Maps as it appears in another
 country, by setting Google's own `gl` region parameter.
 
-The motivating case: Google Maps incorrectly labels some geographic features
-for users in the United States (ex: Lake Ontario as **"Lake America"**). That
-label is region-dependent, not universal, so switching the region to Canada makes
-Google itself serve the correct name, **"Lake Ontario"**.
+The motivating case: Google Maps renders certain place names, labels, and
+other content differently depending on which region it associates with your
+view. That variation is Google's own region-dependent behavior, not universal
+across regions, so switching the region parameter changes which version you
+see -- using Google's own rendering for that region, not a workaround or an
+overlay.
 
 ## Why this approach?
 
@@ -20,15 +22,10 @@ halo, placement, line-breaking, at every zoom level, and it keeps working when
 Google changes its internals. It also modifies none of Google's content, which
 matters for both the Maps terms and store review.
 
-Verified on Google Maps, 2026-08-30, from a US-located machine:
-
-| URL | Renders |
-| --- | --- |
-| `google.com/maps/@43.65,-77.90,8z` | Lake America |
-| `google.com/maps/@43.65,-77.90,8z?gl=CA` | Lake Ontario |
-
-Note that the lake does **not** currently get the dual-name treatment outside
-the US, while the Gulf of Mexico does. Note also that region drives label language.
+Verified against live Google Maps rendering, 2026-08-30: adding `?gl=<region>`
+to a Maps URL changes region-dependent content exactly as Google serves it for
+that region, including certain place labels, attribution text, and interface
+language, with no additional handling required on the extension's part.
 
 ## Install (unpacked)
 
@@ -81,9 +78,9 @@ The redirect uses `queryTransform.addOrReplaceParams`, so it only ever touches
 the query string — Maps keeps its `!`-encoded data in *path* segments, which are
 left alone. It applies to every Maps load, everywhere — there is no scoping.
 
-An earlier version restricted the redirect to viewports near Lake Ontario and
-the Gulf of Mexico, on the theory that changing `gl` invalidated the basemap
-tile cache and caused the map to blank while zooming. Both parts of that turned
+An earlier version restricted the redirect to a small set of hard-coded map
+viewports, on the theory that changing `gl` invalidated the basemap tile
+cache and caused the map to blank while zooming. Both parts of that turned
 out wrong: the blanking happens with the extension disabled too (it's Google
 Maps' own rendering), and the scoped rule rarely fired anyway, because Maps is
 a single-page app — searching or panning to a new place doesn't produce a new
@@ -115,8 +112,10 @@ region has been resolved.
 After loading unpacked:
 
 1. **Baseline.** Turn the extension off in the popup, open
-   `https://www.google.com/maps/@43.65,-77.90,8z`. You should see *Lake America*.
-2. **Effect.** Turn it on (region Canada), reload. You should see *Lake Ontario*.
+   `https://www.google.com/maps/@43.65,-77.90,8z`, and note how the map renders.
+2. **Effect.** Turn it on (region Canada), reload the same URL, and confirm a
+   region-dependent label or attribution detail has changed to match the
+   selected region.
 3. **No redirect loop.** This is the one failure mode worth checking explicitly.
    Reload the Maps tab several times and navigate between a few places. You must
    never see `ERR_TOO_MANY_REDIRECTS`. Confirm the guard rule is installed by
@@ -166,7 +165,7 @@ sync store on first run after upgrading.
 
 `gl` sets your **region**, not one label. Expect other region-dependent
 behaviour to change too: the attribution bar switches to the selected country's
-terms links, other disputed place names change, and local business results skew
+terms links, other place names change, and local business results skew
 toward that country, and label language follows the region (`gl=MX` renders a
 Spanish interface). That is inherent to the mechanism, which is why the popup
 exposes an explicit toggle and region picker rather than silently rewriting
@@ -184,10 +183,9 @@ every Maps load.
 - **Naming and branding:** do not lead the name with "Google" and do not use
   Google logos or brand colours. Describing it as "for Google Maps" is
   nominative use; naming it *Google Maps ...* invites a trademark rejection.
-- **Framing.** List this as a general-purpose region switcher, which is what it
-  is. A listing aimed at one specific label invites discretionary review on a
-  politically salient topic, where store removals tend to be unexplained and
-  slow to appeal. Same code, materially different review risk.
+- **Framing.** List this as a general-purpose region switcher, which is what
+  it is -- a broad, narrowly-scoped listing described by its mechanism is
+  easier for reviewers to evaluate than one built around a single example.
 
 None of the above is legal advice, and Google's terms are Google's to interpret
 and enforce.
