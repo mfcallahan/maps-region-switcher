@@ -7,8 +7,13 @@ The motivating case: Google Maps renders certain place names, labels, and
 other content differently depending on which region it associates with your
 view. That variation is Google's own region-dependent behavior, not universal
 across regions, so switching the region parameter changes which version you
-see -- using Google's own rendering for that region, not a workaround or an
+see, using Google's own rendering for that region, not a workaround or an
 overlay.
+
+![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot2.png)
+
+<sup>Google Maps at `gl=CA`, rendered by Google exactly as it serves the map to
+Canada. The extension only asks for that version, it does not draw anything.</sup>
 
 ## Why this approach?
 
@@ -94,6 +99,15 @@ reloads Firefox on every save instead of using `about:debugging` by hand.
 
 Clicking the icon opens a small panel whose first control is an on/off toggle;
 the region picker sits below it and greys out while the extension is off.
+
+| Chrome | Firefox |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.png" alt="The extension popup open in Chrome, toggled on with region Canada (CA)" width="420"> | <img src="https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/firefox/screenshot1.png" alt="The same popup in Firefox, toggled on with region Canada (CA)" width="420"> |
+
+The same popup, same code, in both browsers — `popup.js` picks the `browser` or
+`chrome` namespace at runtime, so nothing in `src/` is browser-specific.
+`Refresh` reloads the current Maps tab, since the region only applies on page
+load.
 
 The icon itself carries the state, with no text overlaid on it:
 
