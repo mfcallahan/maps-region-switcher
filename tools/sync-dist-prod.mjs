@@ -3,9 +3,10 @@
 // the extension straight away -- no Node, no npm, no build step -- and so
 // the ready-to-upload zips are always sitting in the repo for handing off.
 //
-// Run via `npm run build:prod`, which builds dist/ first and then calls
-// this. dist_prod/ is fully regenerated each time (deleted and rebuilt), so
-// it always mirrors the current source -- never hand-edit files in it.
+// Run via `npm run build` (which builds dist/ first, then calls this) or
+// directly via `npm run build:prod`, an alias for the same thing. dist_prod/
+// is fully regenerated each time (deleted and rebuilt), so it always
+// mirrors the current source -- never hand-edit files in it.
 import { cp, rm, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 

@@ -7,10 +7,10 @@
   "scripts": {
     "test": "node tools/test-rules.mjs",
     "icons": "python3 tools/make_icons.py",
-    "build": "node tools/build.mjs all",
+    "build": "node tools/build.mjs all && node tools/sync-dist-prod.mjs",
     "build:chrome": "node tools/build.mjs chrome",
     "build:firefox": "node tools/build.mjs firefox",
-    "build:prod": "node tools/build.mjs all && node tools/sync-dist-prod.mjs",
+    "build:prod": "npm run build",
     "firefox:run": "web-ext run --source-dir dist/firefox",
     "firefox:lint": "web-ext lint --source-dir dist/firefox"
   },

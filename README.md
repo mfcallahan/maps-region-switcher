@@ -82,12 +82,12 @@ signature checks and cannot skip this step:
 
 ### Building it yourself (developers)
 
-`dist_prod/` is regenerated with `npm run build:prod`, which builds
-`dist/chrome/` and `dist/firefox/` (see Layout below) and copies the built
-folders plus fresh zips into `dist_prod/`. Run this after any source change
-and commit the result so `dist_prod/` always matches `src/`. `npm run build`
-alone builds and zips into the gitignored `dist/` without touching
-`dist_prod/`, for local iteration. `npm run firefox:run` (via `web-ext`)
+`npm run build` builds `dist/chrome/` and `dist/firefox/` (see Layout below),
+zips each, and syncs the built folders plus zips into `dist_prod/` -- so
+`dist_prod/` always matches `src/` after a build. Run it after any source
+change and commit the result. `npm run build:chrome` / `build:firefox` build
+just one target into `dist/` without touching `dist_prod/`, for quicker
+local iteration on a single browser. `npm run firefox:run` (via `web-ext`)
 reloads Firefox on every save instead of using `about:debugging` by hand.
 
 ## Toolbar icon
@@ -288,7 +288,7 @@ tools/
   test-rules.mjs      regex corpus test + manifest/asset checks (both targets)
 dist/               build output, gitignored -- run `npm run build`
 dist_prod/          committed, ready-to-load snapshot for people who just
-                    clone the repo -- run `npm run build:prod` to refresh it
+                    clone the repo -- `npm run build` keeps it in sync
 ```
 
 ## License
