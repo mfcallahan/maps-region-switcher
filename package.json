@@ -1,6 +1,6 @@
 {
   "name": "maps-region-switcher",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "type": "module",
   "description": "MV3 extension (Chrome + Firefox) that loads Google Maps with a chosen region parameter.",
