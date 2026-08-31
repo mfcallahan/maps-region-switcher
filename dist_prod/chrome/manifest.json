@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Maps Region Switcher",
+  "version": "1.4.2",
+  "description": "View Google Maps as it appears in another country by setting the region parameter on Maps page loads.",
+  "permissions": [
+    "declarativeNetRequestWithHostAccess",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://www.google.com/maps*",
+    "*://google.com/maps*",
+    "*://maps.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Maps Region Switcher",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
