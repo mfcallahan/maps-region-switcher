@@ -23,14 +23,11 @@ function describe(code, enabled) {
     return "Google Maps loads normally, using your own location.";
   }
 
-  const region = REGIONS.find((r) => r.code === code);
-
-  if (!region) {
-    return "";
-  }
-
-  const base = `Google Maps loads as if you were in ${region.name}.`;
-  return region.note ? `${base}\nNames shown: ${region.note}` : base;
+  // Enabled state needs no extra description here -- the region choice is
+  // already shown in #statusText and the region <select>. Keeping this
+  // function symmetrical (rather than inlining the off-state string) leaves
+  // one place to extend it later without reintroducing a note per region.
+  return "";
 }
 
 function render({ enabled, region }) {
@@ -42,7 +39,10 @@ function render({ enabled, region }) {
   const label = info ? `${info.name} (${region.toUpperCase()})` : region.toUpperCase();
 
   els.statusText.textContent = enabled ? `On — ${label}` : "Off";
-  els.note.textContent = describe(region, enabled);
+
+  const note = describe(region, enabled);
+  els.note.textContent = note;
+  els.note.hidden = !note;
 }
 
 const store = api.storage.local;

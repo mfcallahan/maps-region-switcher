@@ -7,9 +7,10 @@ export const DEFAULTS = Object.freeze({
 });
 
 export const REGIONS = Object.freeze([
-  { code: "CA", name: "Canada", note: "Lake Ontario · Gulf of Mexico (Gulf of America)" },
-  { code: "MX", name: "Mexico", note: "Lake Ontario · Golfo de México · Spanish labels" },
-  { code: "US", name: "United States", note: "Lake America · Gulf of America" },
+  { code: "CA", name: "Canada" },
+  { code: "MX", name: "Mexico" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" },
   { code: "AR", name: "Argentina" },
   { code: "AU", name: "Australia" },
   { code: "AT", name: "Austria" },
@@ -50,6 +51,5 @@ export const REGIONS = Object.freeze([
   { code: "TH", name: "Thailand" },
   { code: "TR", name: "Turkey" },
   { code: "AE", name: "United Arab Emirates" },
-  { code: "GB", name: "United Kingdom", note: "Lake Ontario" },
   { code: "VN", name: "Vietnam" }
 ]);
