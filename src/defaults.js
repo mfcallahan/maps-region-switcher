@@ -1,9 +1,18 @@
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
+// storage.local: one small value that survives browser restarts and applies
+// to the whole extension, not to any one tab.
 export const DEFAULTS = Object.freeze({
-  enabled: true,
-  region: "CA",
   schemaVersion: SCHEMA_VERSION
+});
+
+// The state a tab has until its popup is used to change it: off, region
+// pre-filled to CA. Regions are per tab now -- see project memory:
+// per_tab_regions.md -- and actual per-tab state lives in
+// chrome.storage.session (see background.js), keyed by tab id, not here.
+export const TAB_DEFAULTS = Object.freeze({
+  enabled: false,
+  region: "CA"
 });
 
 export const REGIONS = Object.freeze([

@@ -36,22 +36,37 @@
     border-bottom: 1px solid var(--line);
   }
   h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
-  .sub { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; }
+  .header-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .sub { flex: 0 0 75%; margin: 0; color: var(--muted); font-size: 11.5px; }
+  .header-toggle { flex: 0 0 25%; display: flex; justify-content: flex-end; }
   main { padding: 14px 16px 16px; }
-  .row {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; margin-bottom: 14px;
-  }
-  label.field { display: block; }
-  .field-label {
-    display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--muted); margin-bottom: 5px;
-  }
-  select {
-    width: 100%; padding: 7px 8px; font: inherit; color: var(--fg);
+  .field { display: block; margin-bottom: 0; }
+  /* Region combobox */
+  .combobox { position: relative; }
+  .region-input {
+    width: 100%; padding: 7px 26px 7px 8px; font: inherit; color: var(--fg);
     background: var(--field); border: 1px solid var(--line); border-radius: 6px;
   }
-  select:disabled { opacity: 0.5; }
+  .region-input:disabled { opacity: 0.5; }
+  .region-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .combobox-arrow {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none; transition: transform 0.15s;
+  }
+  .combobox:has(.region-listbox:not([hidden])) .combobox-arrow {
+    transform: translateY(-50%) rotate(180deg);
+  }
+  .region-listbox {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 10;
+    margin: 0; padding: 4px; list-style: none; max-height: 220px; overflow-y: auto;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+  .region-option {
+    padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  }
+  .region-option.active { background: var(--accent); color: #fff; }
+  .region-listbox-empty { padding: 6px 8px; color: var(--muted); font-size: 12px; }
   /* Toggle */
   .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex: none; }
   .switch input { opacity: 0; width: 0; height: 0; }
@@ -67,7 +82,6 @@
   .switch input:checked + .slider { background: var(--accent); }
   .switch input:checked + .slider::before { transform: translateX(16px); }
   .switch input:focus-visible + .slider { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .toggle-text { font-weight: 500; }
   #note {
     margin: 10px 0 0; padding: 9px 10px; border-radius: 6px;
     background: var(--field); color: var(--muted); font-size: 11.5px;
@@ -92,28 +106,35 @@
 <body>
   <header>
     <h1>Maps Region Switcher</h1>
-    <p class="sub">Loads Google Maps as it appears in another country.</p>
+    <div class="header-row">
+      <p class="sub">Loads Google Maps in this tab, as it appears in another country.</p>
+      <div class="header-toggle">
+        <label class="switch">
+          <input type="checkbox" id="enabled" aria-label="Enable region switching for this tab">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
   </header>
 
   <main>
-    <div class="row">
-      <span class="toggle-text" id="statusText">Off</span>
-      <label class="switch">
-        <input type="checkbox" id="enabled" aria-label="Enable region switching">
-        <span class="slider"></span>
-      </label>
+    <div class="field">
+      <div class="combobox" id="regionCombobox">
+        <input type="text" id="regionInput" class="region-input" role="combobox"
+          aria-expanded="false" aria-controls="regionListbox" aria-autocomplete="list"
+          aria-label="Region" autocomplete="off" spellcheck="false">
+        <svg class="combobox-arrow" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+        </svg>
+        <ul id="regionListbox" class="region-listbox" role="listbox" hidden></ul>
+      </div>
     </div>
-
-    <label class="field">
-      <span class="field-label">Region</span>
-      <select id="region"></select>
-    </label>
 
     <p id="note"></p>
   </main>
 
   <footer>
-    <span id="hint">Applies on page load.</span>
+    <span id="hint">Applies to this tab on page load.</span>
     <button id="refresh" type="button">
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
         <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
