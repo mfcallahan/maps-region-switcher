@@ -1,4 +1,5 @@
 import { TAB_DEFAULTS, REGIONS } from "./defaults.js";
+import { stripRegionParam } from "./rules.js";
 
 const api = typeof browser !== "undefined" ? browser : chrome;
 
@@ -217,7 +218,28 @@ els.enabled.addEventListener("change", () => applyPatch({ enabled: els.enabled.c
 
 els.refresh.addEventListener("click", async () => {
   if (activeTabId != null) {
-    await api.tabs.reload(activeTabId);
+    // A bare reload() re-requests whatever URL the tab is currently on --
+    // and that URL can still carry a "gl=" query param this extension (or
+    // Google's own replaceState) added earlier, even once the tab's rules
+    // have been turned off. Google Maps reads gl straight off the request
+    // URL regardless of whether our rule put it there, so turning the
+    // toggle off and then just reloading is not enough to get back to the
+    // native/default region -- the stale gl= has to be stripped first.
+    let tab;
+    try {
+      tab = await api.tabs.get(activeTabId);
+    } catch { /* tab may have closed between click and here */ }
+
+    if (tab && tab.url) {
+      const next = stripRegionParam(tab.url);
+      if (next !== tab.url) {
+        await api.tabs.update(activeTabId, { url: next });
+      } else {
+        await api.tabs.reload(activeTabId);
+      }
+    } else {
+      await api.tabs.reload(activeTabId);
+    }
   } else {
     await api.tabs.create({ url: "https://www.google.com/maps" });
   }

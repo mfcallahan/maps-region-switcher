@@ -72,3 +72,16 @@ export function buildTabRules({ tabId, ruleIdBase, enabled, region }) {
     }
   ];
 }
+
+// Strips a stale `gl=` from a URL before it's reloaded. Google Maps reads
+// gl straight off whatever request URL it's given, independent of whether
+// this extension's rule put it there -- so turning a tab's rule off is not
+// enough on its own to get back to the native/default region on the next
+// reload; the URL that actually gets reloaded has to not carry gl= any
+// more. Pure string/URL logic, deliberately kept out of popup.js so it can
+// be unit tested without a browser -- see tools/test-rules.mjs.
+export function stripRegionParam(url) {
+  const u = new URL(url);
+  u.searchParams.delete("gl");
+  return u.toString();
+}

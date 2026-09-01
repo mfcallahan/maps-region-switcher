@@ -144,9 +144,21 @@ api.runtime.onInstalled.addListener(async () => {
 // The popup never calls declarativeNetRequest directly -- every mutation and
 // its "verify what actually installed" check happens here, in one place,
 // reached only through this message.
-api.runtime.onMessage.addListener((message) => {
+//
+// Deliberately NOT `return applyTabState(...)`. Returning a promise directly
+// from an onMessage listener is only honored by Chrome from version 148
+// (and that's still a gradual rollout) -- on every other Chrome this makes
+// the listener look like it isn't sending a response at all, so the caller's
+// sendMessage() resolves to undefined immediately while applyTabState keeps
+// running in the background. The rules still end up installed correctly
+// (nothing about applying them is broken), but the popup has no idea it
+// worked and shows "Couldn't apply: unknown error" regardless of the real
+// outcome. sendResponse + `return true` is the pattern that has always
+// worked on both Chrome and Firefox.
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message !== "object" || message.type !== "setTabState") {
     return;
   }
-  return applyTabState(message.tabId, message.enabled, message.region);
+  applyTabState(message.tabId, message.enabled, message.region).then(sendResponse);
+  return true; // keep the message channel open for the async sendResponse above
 });

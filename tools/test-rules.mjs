@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { REDIRECT_REGEX, GUARD_REGEX, buildTabRules, guardRuleId, redirectRuleId } from "../src/rules.js";
+import { REDIRECT_REGEX, GUARD_REGEX, buildTabRules, guardRuleId, redirectRuleId, stripRegionParam } from "../src/rules.js";
 import { DEFAULTS, TAB_DEFAULTS } from "../src/defaults.js";
 
 let failures = 0;
@@ -119,6 +119,35 @@ check("path data survives the transform untouched", () => {
   assert.ok(hop1.includes("/data=!3m1!4b1"), `path was mangled: ${hop1}`);
 });
 
+// Regression test for a real bug: the Refresh button used to call
+// tabs.reload() directly. A reload just re-requests whatever URL the tab
+// is already on, and that URL can still carry a stale gl= (added earlier
+// by this extension, or left over from Google's own replaceState) even
+// after the tab's rule has been turned off -- so turning a tab off and
+// hitting Refresh silently did nothing. stripRegionParam() is the fix;
+// these test its actual URL logic directly, no browser needed.
+console.log("\nstripRegionParam (used by the Refresh button)");
+check("removes gl from a URL that has it", () => {
+  assert.equal(
+    stripRegionParam("https://www.google.com/maps/@43.65,-77.90,8z?gl=CA"),
+    "https://www.google.com/maps/@43.65,-77.90,8z"
+  );
+});
+check("preserves other query params while removing gl", () => {
+  const result = stripRegionParam("https://www.google.com/maps?hl=en&gl=CA&entry=ttu");
+  const u = new URL(result);
+  assert.equal(u.searchParams.get("gl"), null, "gl must be gone");
+  assert.equal(u.searchParams.get("hl"), "en", "other params must survive");
+  assert.equal(u.searchParams.get("entry"), "ttu", "other params must survive");
+});
+check("leaves a URL without gl unchanged", () => {
+  const url = "https://www.google.com/maps/@43.65,-77.90,8z";
+  assert.equal(stripRegionParam(url), url);
+});
+check("is idempotent", () => {
+  const once = stripRegionParam("https://www.google.com/maps?gl=CA");
+  assert.equal(stripRegionParam(once), once);
+});
 console.log("\nRule construction");
 check("disabled produces no rules", () =>
   assert.equal(buildTabRules({ tabId: 7, ruleIdBase: 1, enabled: false, region: "CA" }).length, 0));
@@ -242,6 +271,35 @@ check("every declarativeNetRequest mutation goes through the message handler, no
   const src = readFileSync(join(SRC, "popup.js"), "utf8");
   assert.ok(!/declarativeNetRequest\./.test(src),
     "popup.js must not call declarativeNetRequest directly");
+});
+check("the Refresh button routes through stripRegionParam, not a bare reload", () => {
+  const src = readFileSync(join(SRC, "popup.js"), "utf8");
+  const handlerStart = src.indexOf("els.refresh.addEventListener");
+  assert.ok(handlerStart > -1, "expected a refresh click handler");
+  const handler = src.slice(handlerStart, src.indexOf("\n});", handlerStart));
+  assert.ok(/stripRegionParam\(/.test(handler),
+    "refresh handler must call stripRegionParam before reloading, or a stale gl= silently survives");
+});
+// Regression test for a real bug found by actually loading the extension in
+// Chromium (via Playwright) and driving it: the message listener returned a
+// bare promise (`return applyTabState(...)`) instead of using sendResponse.
+// Chrome only started honoring a directly-returned promise from
+// onMessage listeners in version 148, and that's still a gradual rollout --
+// on every other Chrome (almost everyone's, as of this writing) the caller's
+// sendMessage() resolved to undefined immediately, even though the rules
+// installed correctly in the background. The popup then always showed
+// "Couldn't apply: unknown error" no matter what actually happened. Verified
+// live: same background.js, before this fix setTabState resolved to
+// `undefined`; after it, `{ ok: true }`.
+check("the message listener responds via sendResponse + return true, not a bare returned promise", () => {
+  const src = readFileSync(join(SRC, "background.js"), "utf8");
+  const listenerStart = src.indexOf("onMessage.addListener");
+  assert.ok(listenerStart > -1, "expected an onMessage listener");
+  const listener = src.slice(listenerStart, src.indexOf("\n});", listenerStart) + 4);
+  assert.ok(/sendResponse/.test(listener),
+    "listener must call sendResponse -- a directly returned promise isn't honored before Chrome 148");
+  assert.ok(/return true/.test(listener),
+    "listener must synchronously return true to keep the message channel open for the async sendResponse");
 });
 
 console.log("\nDefault configuration");
