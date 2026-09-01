@@ -3,6 +3,16 @@
 A Chrome extension and Firefox add-on that loads Google Maps as it appears in another
 country, by setting Google's own `gl` region parameter.
 
+## Install
+
+### Chrome
+
+https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbjefifbjaopmgcfd
+
+### Firefox
+
+(Pending Mozilla approval...)
+
 The motivating case: Google Maps renders certain place names, labels, and
 other content differently depending on which region it associates with your
 view. That variation is Google's own region-dependent behavior, not universal
