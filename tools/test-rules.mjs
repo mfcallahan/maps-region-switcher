@@ -1,13 +1,14 @@
 // Rule-matching tests. No browser required: replicates how Chrome evaluates the
-// two dynamic rules, then checks the redirect transform for idempotency.
+// per-tab guard/redirect rule pair, then checks the redirect transform for
+// idempotency.
 //
 // Run with `npm test`.
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { REDIRECT_REGEX, GUARD_REGEX, buildRules } from "../src/rules.js";
-import { DEFAULTS } from "../src/defaults.js";
+import { REDIRECT_REGEX, GUARD_REGEX, buildTabRules, guardRuleId, redirectRuleId, stripRegionParam } from "../src/rules.js";
+import { DEFAULTS, TAB_DEFAULTS } from "../src/defaults.js";
 
 let failures = 0;
 const check = (name, fn) => {
@@ -47,9 +48,11 @@ const decide = (url) =>
   : "none";
 
 // ---------------------------------------------------------------------------
-// Every Maps navigation is rewritten, anywhere in the world -- there is no
-// scoping any more (see README.md for why the earlier "areas" option was
-// removed rather than kept as a checkbox that mostly did nothing).
+// Every Maps navigation in an enabled tab is rewritten, anywhere in the world
+// -- there is no area scoping (see README.md for why the earlier "areas"
+// option was removed rather than kept as a checkbox that mostly did nothing).
+// The regexes themselves don't know about tabs at all -- tab scoping is a
+// `condition.tabIds` on the rule, checked separately below.
 // ---------------------------------------------------------------------------
 const cases = [
   ["https://www.google.com/maps", "redirect"],
@@ -116,16 +119,56 @@ check("path data survives the transform untouched", () => {
   assert.ok(hop1.includes("/data=!3m1!4b1"), `path was mangled: ${hop1}`);
 });
 
+// Regression test for a real bug: the Refresh button used to call
+// tabs.reload() directly. A reload just re-requests whatever URL the tab
+// is already on, and that URL can still carry a stale gl= (added earlier
+// by this extension, or left over from Google's own replaceState) even
+// after the tab's rule has been turned off -- so turning a tab off and
+// hitting Refresh silently did nothing. stripRegionParam() is the fix;
+// these test its actual URL logic directly, no browser needed.
+console.log("\nstripRegionParam (used by the Refresh button)");
+check("removes gl from a URL that has it", () => {
+  assert.equal(
+    stripRegionParam("https://www.google.com/maps/@43.65,-77.90,8z?gl=CA"),
+    "https://www.google.com/maps/@43.65,-77.90,8z"
+  );
+});
+check("preserves other query params while removing gl", () => {
+  const result = stripRegionParam("https://www.google.com/maps?hl=en&gl=CA&entry=ttu");
+  const u = new URL(result);
+  assert.equal(u.searchParams.get("gl"), null, "gl must be gone");
+  assert.equal(u.searchParams.get("hl"), "en", "other params must survive");
+  assert.equal(u.searchParams.get("entry"), "ttu", "other params must survive");
+});
+check("leaves a URL without gl unchanged", () => {
+  const url = "https://www.google.com/maps/@43.65,-77.90,8z";
+  assert.equal(stripRegionParam(url), url);
+});
+check("is idempotent", () => {
+  const once = stripRegionParam("https://www.google.com/maps?gl=CA");
+  assert.equal(stripRegionParam(once), once);
+});
 console.log("\nRule construction");
 check("disabled produces no rules", () =>
-  assert.equal(buildRules({ enabled: false, region: "CA" }).length, 0));
+  assert.equal(buildTabRules({ tabId: 7, ruleIdBase: 1, enabled: false, region: "CA" }).length, 0));
 check("invalid region produces no rules", () => {
   for (const region of ["CAN", "", undefined, "1A"]) {
-    assert.equal(buildRules({ enabled: true, region }).length, 0, `region=${region}`);
+    assert.equal(buildTabRules({ tabId: 7, ruleIdBase: 1, enabled: true, region }).length, 0, `region=${region}`);
   }
 });
-check("enabled produces guard + redirect with unique ids", () => {
-  const rules = buildRules({ enabled: true, region: "ca" });
+check("invalid tabId produces no rules", () => {
+  for (const tabId of [-1, 1.5, NaN, undefined, null, "7"]) {
+    assert.equal(buildTabRules({ tabId, ruleIdBase: 1, enabled: true, region: "CA" }).length, 0, `tabId=${tabId}`);
+  }
+});
+check("invalid ruleIdBase produces no rules", () => {
+  for (const ruleIdBase of [-1, 0, 1.5, NaN, undefined, null, "3"]) {
+    assert.equal(buildTabRules({ tabId: 7, ruleIdBase, enabled: true, region: "CA" }).length, 0, `ruleIdBase=${ruleIdBase}`);
+  }
+});
+check("enabled tab produces guard + redirect scoped to that tab", () => {
+  const tabId = 42;
+  const rules = buildTabRules({ tabId, ruleIdBase: 5, enabled: true, region: "ca" });
   assert.equal(rules.length, 2);
   assert.equal(new Set(rules.map((r) => r.id)).size, 2);
   const allow = rules.find((r) => r.action.type === "allow");
@@ -136,12 +179,45 @@ check("enabled produces guard + redirect with unique ids", () => {
     "CA",
     "region should be upper-cased"
   );
-  for (const r of rules) assert.deepEqual(r.condition.resourceTypes, ["main_frame"]);
+  for (const r of rules) {
+    assert.deepEqual(r.condition.resourceTypes, ["main_frame"]);
+    assert.deepEqual(r.condition.tabIds, [tabId], "rule must be scoped to its tab");
+  }
+});
+check("different rule id bases never collide with each other", () => {
+  const a = buildTabRules({ tabId: 3, ruleIdBase: 1, enabled: true, region: "CA" });
+  const b = buildTabRules({ tabId: 4, ruleIdBase: 3, enabled: true, region: "GB" });
+  const ids = [...a, ...b].map((r) => r.id);
+  assert.equal(new Set(ids).size, ids.length, "rule ids must not collide across bases");
+});
+check("a base's own guard and redirect ids never collide", () => {
+  for (const ruleIdBase of [1, 3, 5, 1000]) {
+    assert.notEqual(guardRuleId(ruleIdBase), redirectRuleId(ruleIdBase));
+  }
+});
+// Regression test for a real bug: the first shipped version derived rule ids
+// via `tabId * 2` / `tabId * 2 + 1`. declarativeNetRequest rule ids are a
+// strict int32 (max 2,147,483,647); on a long-lived Chrome profile, tab ids
+// are large enough that doubling one overflows int32, and
+// updateSessionRules() rejects the *entire* call with "Invalid type:
+// expected integer, found number" -- silently breaking the extension for
+// exactly the users who've had Chrome open the longest. Rule ids must never
+// be derived from the tab id's magnitude; ruleIdBase comes from a small,
+// independent pool instead (see background.js).
+check("a very large real tab id never produces an out-of-range rule id", () => {
+  const hugeTabId = 2_000_000_000; // valid int32 tab id; tabId*2 would overflow
+  const rules = buildTabRules({ tabId: hugeTabId, ruleIdBase: 1, enabled: true, region: "CA" });
+  assert.equal(rules.length, 2);
+  const INT32_MAX = 2147483647;
+  for (const r of rules) {
+    assert.ok(Number.isInteger(r.id) && r.id > 0 && r.id <= INT32_MAX,
+      `rule id ${r.id} must be a valid positive int32`);
+    // The real tab id is used unmodified as the scoping condition -- that's
+    // always safe, since Chrome guarantees tab ids themselves fit int32.
+    assert.deepEqual(r.condition.tabIds, [hugeTabId]);
+  }
 });
 
-// A missing off-state icon would only surface at runtime, as a failed
-// setIcon call the moment someone toggles the extension off.
-//
 // Two manifests share this one src/ tree (see tools/build.mjs) -- the
 // background entry point is spelled differently in each (service_worker vs
 // scripts[0]), so every check below is run once per target manifest rather
@@ -166,79 +242,76 @@ for (const target of TARGETS) {
     for (const r of refs) assert.ok(existsSync(join(SRC, r)), `missing ${r}`);
   });
 }
-check("every color icon has a matching -off variant", () => {
-  for (const p of Object.values(manifest("chrome").icons)) {
-    const off = p.replace(/\.png$/, "-off.png");
-    assert.ok(existsSync(join(SRC, off)), `missing ${off}`);
-  }
+check("the toolbar icon is never recolored -- action.setIcon is not called", () => {
+  // Per-tab state is shown via the popup and a badge/title, not by swapping
+  // icon files -- the icon must stay whatever the manifest declares, always.
+  const src = readFileSync(join(SRC, "background.js"), "utf8");
+  assert.ok(!/action\.setIcon\(/.test(src), "background.js must not call action.setIcon");
+  const popupSrc = readFileSync(join(SRC, "popup.js"), "utf8");
+  assert.ok(!/action\.setIcon\(/.test(popupSrc), "popup.js must not call action.setIcon");
 });
-check("popup never blocks its render on chrome.storage.sync", () => {
-  // A cold storage.sync read can take seconds. The popup must read only from
-  // storage.local; storage.sync may appear in background.js migration alone.
+check("popup never blocks its render on chrome.storage.sync or storage.local", () => {
   const src = readFileSync(join(SRC, "popup.js"), "utf8")
     .split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
-  assert.ok(!/api\.storage\.sync/.test(src),
-    "popup.js must not call storage.sync");
+  assert.ok(!/api\.storage\.sync/.test(src), "popup.js must not call storage.sync");
+  assert.ok(!/api\.storage\.local/.test(src), "popup.js must not call storage.local");
 });
-check("migration never runs on the service-worker hot path", () => {
-  // migrate() awaits storage.sync; on every wake that delays rule installation,
-  // which was shown to leave getDynamicRules() empty during startup.
+check("migration only runs from onInstalled, never at module top level", () => {
   const src = readFileSync(join(SRC, "background.js"), "utf8");
   assert.ok(/onInstalled\.addListener\(async \(\) => \{\s*await migrate\(\)/.test(src),
     "migrate() must run from onInstalled");
-  assert.ok(!/^\s*init\(\);/m.test(src), "no top-level init() that migrates on every wake");
-  assert.ok(/^syncRules\(\);/m.test(src), "top-level wake path must call syncRules directly");
-});
-check("popup paints synchronously before awaiting storage", () => {
-  // chrome.storage.local's first call per session pays a cold-open cost, so the
-  // toggle must render from the synchronous localStorage mirror first.
-  const src = readFileSync(join(SRC, "popup.js"), "utf8");
-  const paint = src.indexOf("readMirror()");
-  const read = src.indexOf("store.get(DEFAULTS)");
-  assert.ok(paint > -1 && read > -1, "expected both a mirror read and a store read");
-  assert.ok(paint < read, "the synchronous mirror render must come first");
-});
-check("legacy storage.sync read is bounded by a timeout", () => {
-  // An unbounded await on storage.sync during service-worker startup can wedge
-  // init() forever on a stalled sync backend, so the rules never install.
-  const src = readFileSync(join(SRC, "background.js"), "utf8");
-  assert.ok(/withTimeout\(\s*api\.storage\.sync\.get/.test(src),
-    "api.storage.sync.get must be wrapped in withTimeout");
-  assert.ok(!/await\s+api\.storage\.sync\.get/.test(src),
-    "no bare awaited api.storage.sync.get");
+  assert.ok(!/^\s*migrate\(\);/m.test(src), "no top-level migrate() call outside onInstalled");
 });
 check("background.js does not put the region code on the badge", () => {
   const src = readFileSync(join(SRC, "background.js"), "utf8");
-  assert.ok(!/setBadgeText\(\{\s*text:\s*[^}]*region/.test(src),
+  assert.ok(!/setBadgeText\(\{\s*[^}]*text:\s*[^}]*region/.test(src),
     "region code must not be rendered as badge text");
 });
+check("every declarativeNetRequest mutation goes through the message handler, not the popup", () => {
+  const src = readFileSync(join(SRC, "popup.js"), "utf8");
+  assert.ok(!/declarativeNetRequest\./.test(src),
+    "popup.js must not call declarativeNetRequest directly");
+});
+check("the Refresh button routes through stripRegionParam, not a bare reload", () => {
+  const src = readFileSync(join(SRC, "popup.js"), "utf8");
+  const handlerStart = src.indexOf("els.refresh.addEventListener");
+  assert.ok(handlerStart > -1, "expected a refresh click handler");
+  const handler = src.slice(handlerStart, src.indexOf("\n});", handlerStart));
+  assert.ok(/stripRegionParam\(/.test(handler),
+    "refresh handler must call stripRegionParam before reloading, or a stale gl= silently survives");
+});
+// Regression test for a real bug found by actually loading the extension in
+// Chromium (via Playwright) and driving it: the message listener returned a
+// bare promise (`return applyTabState(...)`) instead of using sendResponse.
+// Chrome only started honoring a directly-returned promise from
+// onMessage listeners in version 148, and that's still a gradual rollout --
+// on every other Chrome (almost everyone's, as of this writing) the caller's
+// sendMessage() resolved to undefined immediately, even though the rules
+// installed correctly in the background. The popup then always showed
+// "Couldn't apply: unknown error" no matter what actually happened. Verified
+// live: same background.js, before this fix setTabState resolved to
+// `undefined`; after it, `{ ok: true }`.
+check("the message listener responds via sendResponse + return true, not a bare returned promise", () => {
+  const src = readFileSync(join(SRC, "background.js"), "utf8");
+  const listenerStart = src.indexOf("onMessage.addListener");
+  assert.ok(listenerStart > -1, "expected an onMessage listener");
+  const listener = src.slice(listenerStart, src.indexOf("\n});", listenerStart) + 4);
+  assert.ok(/sendResponse/.test(listener),
+    "listener must call sendResponse -- a directly returned promise isn't honored before Chrome 148");
+  assert.ok(/return true/.test(listener),
+    "listener must synchronously return true to keep the message channel open for the async sendResponse");
+});
 
-// The regression this suite missed once already: a default that installs rules
-// which never match anything a real user navigates to. Assert the shipped
-// configuration handles the COMMON case, not just the coordinate-bearing one.
 console.log("\nDefault configuration");
-check("defaults redirect a plain Maps load", () => {
-  const rules = buildRules(DEFAULTS);
-  const redir = rules.find((r) => r.action.type === "redirect");
-  assert.ok(redir, "default config must install a redirect rule");
-  const re = new RegExp(redir.condition.regexFilter, "i");
-  for (const url of [
-    "https://www.google.com/maps",
-    "https://www.google.com/maps/",
-    "https://www.google.com/maps/@43.65,-77.90,8z",
-    "https://www.google.com/maps/search/coffee",
-    "https://maps.google.com/"
-  ]) {
-    assert.ok(re.test(url), `default config must redirect ${url}`);
-  }
+check("TAB_DEFAULTS is off with a valid region to pre-fill", () => {
+  assert.equal(TAB_DEFAULTS.enabled, false);
+  assert.match(TAB_DEFAULTS.region, /^[A-Z]{2}$/);
+  assert.equal(buildTabRules({ tabId: 1, ...TAB_DEFAULTS }).length, 0);
 });
-check("defaults are enabled with a valid region", () => {
-  assert.equal(DEFAULTS.enabled, true);
-  assert.match(DEFAULTS.region, /^[A-Z]{2}$/);
-  assert.equal(buildRules(DEFAULTS).length, 2);
-});
-check("defaults carry no leftover scope key", () => {
+check("defaults carry no leftover global-rule keys", () => {
   assert.equal(DEFAULTS.scope, undefined, "the scoping feature was removed");
+  assert.equal(DEFAULTS.enabled, undefined, "enabled is per-tab now, not a stored default");
+  assert.equal(DEFAULTS.region, undefined, "region is per-tab now, not a stored default");
 });
 
 console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
