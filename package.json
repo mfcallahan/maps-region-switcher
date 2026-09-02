@@ -1,13 +1,13 @@
 {
   "name": "maps-region-switcher",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "private": true,
   "type": "module",
   "description": "MV3 extension (Chrome + Firefox) that loads Google Maps with a chosen region parameter.",
   "scripts": {
     "test": "node tools/test-rules.mjs",
     "icons": "python3 tools/make_icons.py",
-    "build": "node tools/build.mjs all && node tools/sync-dist-prod.mjs",
+    "build": "node tools/build.mjs all",
     "build:chrome": "node tools/build.mjs chrome",
     "build:firefox": "node tools/build.mjs firefox",
     "build:prod": "npm run build",
