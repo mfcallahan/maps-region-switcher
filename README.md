@@ -20,7 +20,7 @@ across regions, so switching the region parameter changes which version you
 see, using Google's own rendering for that region, not a workaround or an
 overlay.
 
-![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot2.png)
+![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.jpg)
 
 <sup>Google Maps at `gl=CA`, rendered by Google exactly as it serves the map to
 Canada. The extension only asks for that version, it does not draw anything.</sup>
