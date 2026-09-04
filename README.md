@@ -88,16 +88,6 @@ signature checks and cannot skip this step:
 3. Go to `about:addons`, click the gear icon, choose **Install Add-on From
    File...**, and select `dist/maps-region-switcher-<version>-firefox.zip`.
 
-### Prefer a zip you can hand to someone else?
-
-`npm run build:chrome` / `build:firefox` (or `npm run build` for both) leaves
-`maps-region-switcher-<version>-<target>.zip` next to the unpacked folder in
-`dist/` -- unzip it (double-click on macOS or Windows) and use it the same
-way as the `dist/chrome` or `dist/firefox` folder above.
-
-`npm run firefox:run` (via `web-ext`) reloads Firefox on every save instead
-of using `about:debugging` by hand.
-
 ## Toolbar icon
 
 Clicking the icon opens a small panel whose first control is an on/off toggle;
@@ -105,7 +95,7 @@ the region picker sits below it and greys out while the extension is off.
 
 | Chrome | Firefox |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.png" alt="The extension popup open in Chrome, toggled on with region Canada (CA)" width="420"> | <img src="https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/firefox/screenshot1.png" alt="The same popup in Firefox, toggled on with region Canada (CA)" width="420"> |
+| <img src="./screenshots/chrome/screenshot4.jpg" alt="The extension popup open in Chrome, toggled on with region Canada (CA)" width="420"> | <img src="./screenshots/firefox/screenshot1.png" alt="The same popup in Firefox, toggled on with region Canada (CA)" width="420"> |
 
 The same popup, same code, in both browsers — `popup.js` picks the `browser` or
 `chrome` namespace at runtime, so nothing in `src/` is browser-specific.
@@ -245,40 +235,6 @@ toward that country, and label language follows the region (`gl=MX` renders a
 Spanish interface). That is inherent to the mechanism, which is why the popup
 exposes an explicit toggle and region picker rather than silently rewriting
 every Maps load.
-
-## Publishing notes
-
-- **Permissions** are already minimal: `declarativeNetRequestWithHostAccess`
-  (not the broader `declarativeNetRequest`), `storage`, and three narrow host
-  patterns. Do not widen these — reviewers weigh it heavily.
-- **No remote code, no obfuscation.** The rules are declarative and the source
-  ships as-is.
-- **Data disclosure:** the extension collects and transmits nothing. Declare it
-  that way.
-- **Naming and branding:** do not lead the name with "Google" and do not use
-  Google logos or brand colours. Describing it as "for Google Maps" is
-  nominative use; naming it *Google Maps ...* invites a trademark rejection.
-- **Framing.** List this as a general-purpose region switcher, which is what
-  it is -- a broad, narrowly-scoped listing described by its mechanism is
-  easier for reviewers to evaluate than one built around a single example.
-- **Firefox minimum version.** `strict_min_version` must be `142.0`. Three
-  stacked reasons, not one: ES-module background scripts need Firefox 128+;
-  the built-in data-collection consent UI needs Firefox for desktop 140+; and
-  `data_collection_permissions` itself needs Firefox for **Android** 142+ --
-  `strict_min_version` sets the floor for both platforms unless a separate
-  `gecko_android` block overrides it, so the single version number has to
-  clear the highest of the three.
-- **Firefox data disclosure.** Declared in the manifest itself, not just the
-  listing form: `browser_specific_settings.gecko.data_collection_permissions:
-  { "required": ["none"] }` (required by AMO for all new extensions since
-  2025-11-03).
-- **Firefox source code.** AMO requires a source package only when the build
-  minifies, bundles, or otherwise transforms the code before shipping it.
-  `tools/build.mjs` does a plain copy plus a manifest merge -- what ships is
-  exactly what's in `src/` -- so no source package is needed.
-
-None of the above is legal advice, and Google's and Mozilla's terms are theirs
-to interpret and enforce.
 
 ## Layout
 
