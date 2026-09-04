@@ -95,7 +95,7 @@ the region picker sits below it and greys out while the extension is off.
 
 | Chrome | Firefox |
 | --- | --- |
-| <img src="./screenshots/chrome/screenshot4.jpg" alt="The extension popup open in Chrome, toggled on with region Canada (CA)" width="420"> | <img src="./screenshots/firefox/screenshot4.png" alt="The same popup in Firefox, toggled on with region Canada (CA)" width="420"> |
+| <img src="./screenshots/chrome/screenshot4.jpg" alt="The extension popup open in Chrome, toggled on with region Canada (CA)" width="420"> | <img src="./screenshots/firefox/screenshot4.jpg" alt="The same popup in Firefox, toggled on with region Canada (CA)" width="420"> |
 
 The same popup, same code, in both browsers — `popup.js` picks the `browser` or
 `chrome` namespace at runtime, so nothing in `src/` is browser-specific.
