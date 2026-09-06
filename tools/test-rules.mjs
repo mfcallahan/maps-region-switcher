@@ -1,13 +1,8 @@
-// Rule-matching tests. No browser required: replicates how Chrome evaluates the
-// per-tab guard/redirect rule pair, then checks the redirect transform for
-// idempotency.
-//
-// Run with `npm test`.
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { REDIRECT_REGEX, GUARD_REGEX, buildTabRules, guardRuleId, redirectRuleId, stripRegionParam } from "../src/rules.js";
+import { REDIRECT_REGEX, GUARD_REGEX, buildTabRules, guardRuleId, redirectRuleId, stripRegionParam, isMapsUrl } from "../src/rules.js";
 import { DEFAULTS, TAB_DEFAULTS } from "../src/defaults.js";
 
 let failures = 0;
@@ -21,9 +16,6 @@ const check = (name, fn) => {
   }
 };
 
-// Chrome's declarativeNetRequest matches regexFilter with RE2, which has no
-// lookaround and no backreferences. Guard against anyone "improving" these
-// patterns with syntax that silently fails to register at runtime.
 console.log("RE2 compatibility");
 const patterns = [
   ["REDIRECT_REGEX", REDIRECT_REGEX],
@@ -33,27 +25,18 @@ for (const [name, re] of patterns) {
   check(`${name} uses only RE2-safe syntax`, () => {
     assert.ok(!/\(\?[=!<]/.test(re), "contains lookahead/lookbehind");
     assert.ok(!/\\[1-9]/.test(re), "contains a backreference");
-    new RegExp(re); // must at least compile
+    new RegExp(re);
   });
 }
 
-// isUrlFilterCaseSensitive defaults to false, so mirror that with the i flag.
 const guard = new RegExp(GUARD_REGEX, "i");
 const redirect = new RegExp(REDIRECT_REGEX, "i");
 
-// Chrome resolves `allow` ahead of `redirect`, so the guard wins where both match.
 const decide = (url) =>
   guard.test(url) ? "allow"
   : redirect.test(url) ? "redirect"
   : "none";
 
-// ---------------------------------------------------------------------------
-// Every Maps navigation in an enabled tab is rewritten, anywhere in the world
-// -- there is no area scoping (see README.md for why the earlier "areas"
-// option was removed rather than kept as a checkbox that mostly did nothing).
-// The regexes themselves don't know about tabs at all -- tab scoping is a
-// `condition.tabIds` on the rule, checked separately below.
-// ---------------------------------------------------------------------------
 const cases = [
   ["https://www.google.com/maps", "redirect"],
   ["https://www.google.com/maps/@43.65,-77.90,8z", "redirect"],
@@ -63,17 +46,15 @@ const cases = [
   ["https://maps.google.com", "redirect"],
   ["http://www.google.com/maps/@43.65,-77.90,8z", "redirect"],
   ["https://www.google.com/maps/@51.50,-0.12,12z", "redirect"],
-  ["https://www.google.com/maps/@37.77,-122.41,12z", "redirect"],  // San Francisco
-  ["https://www.google.com/maps/@35.68,139.69,12z", "redirect"],   // Tokyo, positive lng
-  ["https://www.google.com/maps/search/coffee", "redirect"],       // no coordinates at all
+  ["https://www.google.com/maps/@37.77,-122.41,12z", "redirect"],
+  ["https://www.google.com/maps/@35.68,139.69,12z", "redirect"],
+  ["https://www.google.com/maps/search/coffee", "redirect"],
 
-  // Already carries gl= -> the guard must stop a second rewrite.
   ["https://www.google.com/maps/@43.65,-77.90,8z?gl=CA", "allow"],
   ["https://www.google.com/maps/@43.65,-77.9,8z?hl=en&gl=CA", "allow"],
   ["https://www.google.com/maps?gl=CA#anything", "allow"],
   ["https://maps.google.com/?gl=GB", "allow"],
 
-  // Look-alikes and unrelated URLs must not match at all.
   ["https://www.google.com/mapsearch", "none"],
   ["https://www.google.com/mapsomething?gl=CA", "none"],
   ["https://www.google.com/mapsearch?gl=CA", "none"],
@@ -84,7 +65,6 @@ const cases = [
   ["https://www.google.com.evil.test/maps", "none"],
   ["https://evil.test/?x=https://www.google.com/maps", "none"],
 
-  // gl only in the fragment is not a real region param -> still needs rewriting.
   ["https://www.google.com/maps?a=1#gl=CA", "redirect"],
   ["https://www.google.com/maps?a=1&xgl=CA", "redirect"],
   ["https://www.google.com/maps?foo=gl=CA", "redirect"]
@@ -96,8 +76,6 @@ for (const [url, expected] of cases) {
     assert.equal(decide(url), expected, `got "${decide(url)}"`));
 }
 
-// Mirror declarativeNetRequest's queryTransform.addOrReplaceParams so we can
-// confirm the redirect settles after exactly one hop.
 const applyTransform = (url, key, value) => {
   const u = new URL(url);
   u.searchParams.set(key, value);
@@ -119,13 +97,26 @@ check("path data survives the transform untouched", () => {
   assert.ok(hop1.includes("/data=!3m1!4b1"), `path was mangled: ${hop1}`);
 });
 
-// Regression test for a real bug: the Refresh button used to call
-// tabs.reload() directly. A reload just re-requests whatever URL the tab
-// is already on, and that URL can still carry a stale gl= (added earlier
-// by this extension, or left over from Google's own replaceState) even
-// after the tab's rule has been turned off -- so turning a tab off and
-// hitting Refresh silently did nothing. stripRegionParam() is the fix;
-// these test its actual URL logic directly, no browser needed.
+console.log("\nisMapsUrl");
+check("true for every URL the redirect or guard rule would match", () => {
+  for (const [url, expected] of cases) {
+    if (expected === "none") continue;
+    assert.ok(isMapsUrl(url), `expected isMapsUrl(true) for ${url}`);
+  }
+});
+check("false for look-alikes and unrelated URLs", () => {
+  for (const [url, expected] of cases) {
+    if (expected !== "none") continue;
+    assert.ok(!isMapsUrl(url), `expected isMapsUrl(false) for ${url}`);
+  }
+});
+check("false for a masked/missing url, not a thrown error", () => {
+  assert.equal(isMapsUrl(undefined), false);
+  assert.equal(isMapsUrl(null), false);
+  assert.equal(isMapsUrl(""), false);
+  assert.equal(isMapsUrl(42), false);
+});
+
 console.log("\nstripRegionParam (used by the Refresh button)");
 check("removes gl from a URL that has it", () => {
   assert.equal(
@@ -195,33 +186,18 @@ check("a base's own guard and redirect ids never collide", () => {
     assert.notEqual(guardRuleId(ruleIdBase), redirectRuleId(ruleIdBase));
   }
 });
-// Regression test for a real bug: the first shipped version derived rule ids
-// via `tabId * 2` / `tabId * 2 + 1`. declarativeNetRequest rule ids are a
-// strict int32 (max 2,147,483,647); on a long-lived Chrome profile, tab ids
-// are large enough that doubling one overflows int32, and
-// updateSessionRules() rejects the *entire* call with "Invalid type:
-// expected integer, found number" -- silently breaking the extension for
-// exactly the users who've had Chrome open the longest. Rule ids must never
-// be derived from the tab id's magnitude; ruleIdBase comes from a small,
-// independent pool instead (see background.js).
 check("a very large real tab id never produces an out-of-range rule id", () => {
-  const hugeTabId = 2_000_000_000; // valid int32 tab id; tabId*2 would overflow
+  const hugeTabId = 2_000_000_000;
   const rules = buildTabRules({ tabId: hugeTabId, ruleIdBase: 1, enabled: true, region: "CA" });
   assert.equal(rules.length, 2);
   const INT32_MAX = 2147483647;
   for (const r of rules) {
     assert.ok(Number.isInteger(r.id) && r.id > 0 && r.id <= INT32_MAX,
       `rule id ${r.id} must be a valid positive int32`);
-    // The real tab id is used unmodified as the scoping condition -- that's
-    // always safe, since Chrome guarantees tab ids themselves fit int32.
     assert.deepEqual(r.condition.tabIds, [hugeTabId]);
   }
 });
 
-// Two manifests share this one src/ tree (see tools/build.mjs) -- the
-// background entry point is spelled differently in each (service_worker vs
-// scripts[0]), so every check below is run once per target manifest rather
-// than assuming Chrome's shape.
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
 const TARGETS = ["chrome", "firefox"];
@@ -242,13 +218,42 @@ for (const target of TARGETS) {
     for (const r of refs) assert.ok(existsSync(join(SRC, r)), `missing ${r}`);
   });
 }
-check("the toolbar icon is never recolored -- action.setIcon is not called", () => {
-  // Per-tab state is shown via the popup and a badge/title, not by swapping
-  // icon files -- the icon must stay whatever the manifest declares, always.
+check("the toolbar icon is recolored per tab by Maps/not-Maps, not by enabled/region state", () => {
   const src = readFileSync(join(SRC, "background.js"), "utf8");
-  assert.ok(!/action\.setIcon\(/.test(src), "background.js must not call action.setIcon");
+  assert.ok(/action\.setIcon\(/.test(src), "background.js should call action.setIcon to color/grey the icon per tab");
+  const iconFnStart = src.indexOf("async function updateActionIcon");
+  assert.ok(iconFnStart > -1, "expected an updateActionIcon function");
+  const iconFnBody = src.slice(iconFnStart, src.indexOf("\n}\n", iconFnStart));
+  assert.ok(/isMapsUrl\(/.test(iconFnBody), "icon color must be driven by isMapsUrl, not enabled/region state");
   const popupSrc = readFileSync(join(SRC, "popup.js"), "utf8");
-  assert.ok(!/action\.setIcon\(/.test(popupSrc), "popup.js must not call action.setIcon");
+  assert.ok(!/action\.setIcon\(/.test(popupSrc), "popup.js must not call action.setIcon -- background.js owns per-tab icon state");
+});
+check("a tab's state is never stored unless it's currently Google Maps", () => {
+  const src = readFileSync(join(SRC, "background.js"), "utf8");
+  const fnStart = src.indexOf("async function applyTabState");
+  assert.ok(fnStart > -1, "expected an applyTabState function");
+  const fnBody = src.slice(fnStart, src.indexOf("\n}\n", fnStart));
+  assert.ok(/isMapsUrl\(/.test(fnBody), "applyTabState must check isMapsUrl before touching tabStates");
+});
+check("a tracked tab's rules/state are dropped as soon as it navigates off Google Maps", () => {
+  const src = readFileSync(join(SRC, "background.js"), "utf8");
+  const listenerStart = src.indexOf("api.tabs.onUpdated.addListener");
+  assert.ok(listenerStart > -1, "expected a tabs.onUpdated listener");
+  const listener = src.slice(listenerStart, src.indexOf("\n});", listenerStart) + 4);
+  assert.ok(/isMapsUrl\(/.test(listener), "onUpdated must re-check isMapsUrl on navigation");
+  assert.ok(/forgetTab\(/.test(listener), "onUpdated must forget tab state once it's off Google Maps");
+});
+check("tab state is reconciled against reality at both onInstalled and onStartup", () => {
+  const src = readFileSync(join(SRC, "background.js"), "utf8");
+  assert.ok(/onInstalled\.addListener\(async \(\) => \{[\s\S]*?reconcileTabStates\(\)/.test(src),
+    "onInstalled must call reconcileTabStates so stale tracked tabs can't survive an update");
+  assert.ok(/onStartup\.addListener\(async \(\) => \{[\s\S]*?reconcileTabStates\(\)/.test(src),
+    "onStartup must call reconcileTabStates so stale tracked tabs can't survive a browser relaunch");
+});
+check("popup only offers controls when the active tab is Google Maps", () => {
+  const src = readFileSync(join(SRC, "popup.js"), "utf8");
+  assert.ok(/isMapsUrl\(/.test(src), "popup.js must gate its controls on isMapsUrl");
+  assert.ok(/renderNotMaps/.test(src), "popup.js must render a distinct not-Maps state");
 });
 check("popup never blocks its render on chrome.storage.sync or storage.local", () => {
   const src = readFileSync(join(SRC, "popup.js"), "utf8")
@@ -280,17 +285,6 @@ check("the Refresh button routes through stripRegionParam, not a bare reload", (
   assert.ok(/stripRegionParam\(/.test(handler),
     "refresh handler must call stripRegionParam before reloading, or a stale gl= silently survives");
 });
-// Regression test for a real bug found by actually loading the extension in
-// Chromium (via Playwright) and driving it: the message listener returned a
-// bare promise (`return applyTabState(...)`) instead of using sendResponse.
-// Chrome only started honoring a directly-returned promise from
-// onMessage listeners in version 148, and that's still a gradual rollout --
-// on every other Chrome (almost everyone's, as of this writing) the caller's
-// sendMessage() resolved to undefined immediately, even though the rules
-// installed correctly in the background. The popup then always showed
-// "Couldn't apply: unknown error" no matter what actually happened. Verified
-// live: same background.js, before this fix setTabState resolved to
-// `undefined`; after it, `{ ok: true }`.
 check("the message listener responds via sendResponse + return true, not a bare returned promise", () => {
   const src = readFileSync(join(SRC, "background.js"), "utf8");
   const listenerStart = src.indexOf("onMessage.addListener");

@@ -1,31 +1,18 @@
 import { DEFAULTS, SCHEMA_VERSION } from "./defaults.js";
-import { buildTabRules, guardRuleId, redirectRuleId } from "./rules.js";
+import { buildTabRules, guardRuleId, redirectRuleId, isMapsUrl } from "./rules.js";
 
 const api = typeof browser !== "undefined" ? browser : chrome;
 
-// storage.local holds only schemaVersion -- nothing else survives a browser
-// restart deliberately, since per-tab state shouldn't (see rules.js).
 const store = api.storage.local;
-// storage.session holds the actual per-tab state and the id pool below. Its
-// lifetime already matches session-scoped DNR rules and tab ids themselves,
-// so there's nothing to reconcile on restart.
 const sessionStore = api.storage.session;
 
 async function migrate() {
   const { schemaVersion } = await store.get({ schemaVersion: 0 });
   if (schemaVersion >= SCHEMA_VERSION) return;
-  // Older versions kept one global {enabled, region} pair (storage.local,
-  // and before that storage.sync). Regions are per-tab now -- see project
-  // memory: per_tab_regions.md -- and per-tab state lives only in
-  // storage.session, which has nothing to migrate into. Just drop the old
-  // global keys.
   await store.set({ schemaVersion: SCHEMA_VERSION });
   await store.remove(["scope", "enabled", "region"]);
 }
 
-// tabStates: { [tabId]: {enabled, region, ruleIdBase} }
-// pool: {nextBase, free} -- see rules.js for why rule ids come from a small
-// pool instead of being derived from the (possibly large) real tab id.
 async function getSessionData() {
   const { tabStates, pool } = await sessionStore.get({
     tabStates: {},
@@ -39,14 +26,25 @@ function allocateRuleIdBase(pool) {
     return pool.free.shift();
   }
   const base = pool.nextBase;
-  pool.nextBase += 2; // each base reserves exactly 2 ids: base, base+1
+  pool.nextBase += 2;
   return base;
 }
 
-// The toolbar icon itself never changes -- it stays whatever color icon the
-// manifest declares, always, for every tab and every state. A real failure
-// (rules didn't install) is surfaced with a badge + title on just the
-// affected tab instead, not by recoloring anything.
+const ICON_SIZES = [16, 32, 48, 128];
+
+function iconPaths(suffix) {
+  const paths = {};
+  for (const size of ICON_SIZES) paths[size] = `icons/icon${size}${suffix}.png`;
+  return paths;
+}
+
+async function updateActionIcon(tabId, url) {
+  try {
+    await api.action.setIcon({ tabId, path: iconPaths(isMapsUrl(url) ? "" : "-off") });
+  } catch {
+  }
+}
+
 async function showTabError(tabId, detail) {
   try {
     await api.action.setBadgeText({ tabId, text: "!" });
@@ -55,7 +53,7 @@ async function showTabError(tabId, detail) {
       tabId,
       title: `Maps Region Switcher — rules failed to install: ${detail}`
     });
-  } catch { /* ignore errors */ }
+  } catch { }
 }
 
 async function setTabActionState(tabId, enabled, region) {
@@ -73,13 +71,20 @@ async function setTabActionState(tabId, enabled, region) {
 }
 
 async function applyTabState(tabId, enabled, region) {
+  let tab;
+  try {
+    tab = await api.tabs.get(tabId);
+  } catch {
+    return { ok: false, error: "tab no longer exists" };
+  }
+  if (!isMapsUrl(tab.url)) {
+    return { ok: false, error: "not a Google Maps tab" };
+  }
+
   const { tabStates, pool } = await getSessionData();
   const existing = tabStates[tabId];
   let ruleIdBase = existing?.ruleIdBase ?? null;
 
-  // Only spend a slot from the pool the first time a tab is actually turned
-  // on. A tab that's off and has never been on needs no rules at all, so it
-  // needs no id either.
   if (enabled && ruleIdBase == null) {
     ruleIdBase = allocateRuleIdBase(pool);
   }
@@ -119,46 +124,84 @@ async function applyTabState(tabId, enabled, region) {
   return { ok: true };
 }
 
-// No special permission needed. A closed tab's rules and stored state would
-// otherwise sit around forever, and its id-pool slot would never come back
-// for reuse by another tab.
-api.tabs.onRemoved.addListener(async (tabId) => {
+async function forgetTab(tabId) {
   const { tabStates, pool } = await getSessionData();
   const existing = tabStates[tabId];
-  if (existing && existing.ruleIdBase != null) {
+  if (!existing) return;
+  if (existing.ruleIdBase != null) {
     try {
       await api.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [guardRuleId(existing.ruleIdBase), redirectRuleId(existing.ruleIdBase)]
       });
-    } catch { /* the tab's rules may already be gone */ }
+    } catch { }
     pool.free.push(existing.ruleIdBase);
   }
   delete tabStates[tabId];
   await sessionStore.set({ tabStates, pool });
+}
+
+async function reconcileTabStates() {
+  const { tabStates } = await getSessionData();
+  for (const tabIdStr of Object.keys(tabStates)) {
+    const tabId = Number(tabIdStr);
+    let tab;
+    try {
+      tab = await api.tabs.get(tabId);
+    } catch {
+      await forgetTab(tabId);
+      continue;
+    }
+    if (!isMapsUrl(tab.url)) {
+      await forgetTab(tabId);
+    }
+  }
+}
+
+async function refreshAllTabIcons() {
+  let tabs = [];
+  try {
+    tabs = await api.tabs.query({});
+  } catch {
+    return;
+  }
+  await Promise.all(tabs.map((tab) => updateActionIcon(tab.id, tab.url)));
+}
+
+api.tabs.onRemoved.addListener((tabId) => forgetTab(tabId));
+
+api.tabs.onActivated.addListener(async ({ tabId }) => {
+  let tab;
+  try {
+    tab = await api.tabs.get(tabId);
+  } catch {
+    return;
+  }
+  await updateActionIcon(tabId, tab.url);
+});
+
+api.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.url === undefined && changeInfo.status === undefined) return;
+  await updateActionIcon(tabId, tab.url);
+  if (!isMapsUrl(tab.url)) {
+    await forgetTab(tabId);
+  }
 });
 
 api.runtime.onInstalled.addListener(async () => {
   await migrate();
+  await reconcileTabStates();
+  await refreshAllTabIcons();
 });
 
-// The popup never calls declarativeNetRequest directly -- every mutation and
-// its "verify what actually installed" check happens here, in one place,
-// reached only through this message.
-//
-// Deliberately NOT `return applyTabState(...)`. Returning a promise directly
-// from an onMessage listener is only honored by Chrome from version 148
-// (and that's still a gradual rollout) -- on every other Chrome this makes
-// the listener look like it isn't sending a response at all, so the caller's
-// sendMessage() resolves to undefined immediately while applyTabState keeps
-// running in the background. The rules still end up installed correctly
-// (nothing about applying them is broken), but the popup has no idea it
-// worked and shows "Couldn't apply: unknown error" regardless of the real
-// outcome. sendResponse + `return true` is the pattern that has always
-// worked on both Chrome and Firefox.
+api.runtime.onStartup.addListener(async () => {
+  await reconcileTabStates();
+  await refreshAllTabIcons();
+});
+
 api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message !== "object" || message.type !== "setTabState") {
     return;
   }
   applyTabState(message.tabId, message.enabled, message.region).then(sendResponse);
-  return true; // keep the message channel open for the async sendResponse above
+  return true;
 });
