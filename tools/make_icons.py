@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""Generate the extension's PNG icons with no third-party dependencies.
-
-Design: a yellow shopping-tag label tilted 45 degrees, sitting on top of a
-generic map background of green, tan and blue regions. Supersampled for
-antialiasing and written as true-color-with-alpha PNGs using only zlib and
-struct from the stdlib. Re-run after changing any constant below.
-"""
 import math
 import struct
 import zlib
@@ -13,23 +6,16 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "src" / "icons"
 SIZES = (16, 32, 48, 128)
-SS = 5  # supersampling factor
+SS = 5
 
-# --- palette ---------------------------------------------------------------
-GREEN = (0x8C, 0xC6, 0x76)   # land
-TAN = (0xE2, 0xCE, 0x99)     # dry land / desert
-BLUE = (0x6F, 0xB6, 0xDC)    # water
-TAG = (0xFF, 0xC5, 0x26)     # the label itself
-TAG_EDGE = (0x7A, 0x4F, 0x00)  # outline + punch hole, for definition at 16px
+GREEN = (0x8C, 0xC6, 0x76)
+TAN = (0xE2, 0xCE, 0x99)
+BLUE = (0x6F, 0xB6, 0xDC)
+TAG = (0xFF, 0xC5, 0x26)
+TAG_EDGE = (0x7A, 0x4F, 0x00)
 
-CORNER_R = 0.22              # rounded-square corner radius, fraction of side
+CORNER_R = 0.22
 
-# --- map background --------------------------------------------------------
-# The tag lies along the down-left/up-right diagonal, so the background is only
-# really visible in the four corners. Tan is a wedge in the top-left corner and
-# water a wedge in the bottom-right, which puts all three colours on screen
-# either side of the tag; green fills the rest. Boundaries are diagonal and sum
-# two sines, so they read as irregular coastline rather than as flag stripes.
 def map_colour(x, y):
     if 0.80 * x + 1.20 * y < 0.64 + 0.13 * math.sin(5.0 * x) + 0.05 * math.sin(12.0 * x + 1.7):
         return TAN
@@ -38,21 +24,19 @@ def map_colour(x, y):
     return GREEN
 
 
-# --- tag geometry ----------------------------------------------------------
-TAG_ANGLE = -45.0            # negative tilts the point up and to the right
-TAG_CX, TAG_CY = 0.50, 0.52  # centre of the tag on the canvas
-TAG_L, TAG_W = 0.74, 0.34    # length along the axis, width across it
-TAPER_AT = 0.72              # fraction of the length where the point begins
-HOLE_T = 0.85                # where the punch hole sits along the length
+TAG_ANGLE = -45.0
+TAG_CX, TAG_CY = 0.50, 0.52
+TAG_L, TAG_W = 0.74, 0.34
+TAPER_AT = 0.72
+HOLE_T = 0.85
 HOLE_R = 0.043
-EDGE = 0.030                 # outline thickness
+EDGE = 0.030
 
 _c = math.cos(math.radians(TAG_ANGLE))
 _s = math.sin(math.radians(TAG_ANGLE))
 
 
 def tag_uv(x, y):
-    """Canvas point -> tag-local (u along the axis, v across it)."""
     dx, dy = x - TAG_CX, y - TAG_CY
     return dx * _c + dy * _s, -dx * _s + dy * _c
 
@@ -60,14 +44,13 @@ def tag_uv(x, y):
 def in_tag(u, v, length, width):
     if abs(u) > length / 2.0:
         return False
-    t = (u + length / 2.0) / length          # 0 at the blunt end, 1 at the point
+    t = (u + length / 2.0) / length
     half = width / 2.0
     if t > TAPER_AT:
         half *= (1.0 - t) / (1.0 - TAPER_AT)
     return abs(v) <= half
 
 
-# --- rasteriser ------------------------------------------------------------
 def in_rounded_rect(x, y, r):
     if r <= 0:
         return True
@@ -78,7 +61,6 @@ def in_rounded_rect(x, y, r):
 
 
 def sample(x, y):
-    """Return straight RGBA for a point in the unit square."""
     if not in_rounded_rect(x, y, CORNER_R):
         return (0, 0, 0, 0)
 
@@ -117,7 +99,7 @@ def render(size):
             if a <= 0.5:
                 row += bytes(4)
                 continue
-            f = (a / 255.0) * k          # un-premultiply back to straight alpha
+            f = (a / 255.0) * k
             row += bytes((
                 min(255, round(acc[0] / f)),
                 min(255, round(acc[1] / f)),
@@ -143,11 +125,8 @@ def write_png(path, size, rows):
     return len(png)
 
 
-# Rec. 709 luminance, then flattened toward mid-grey so the off-state icon reads
-# as clearly inactive rather than as a monochrome design choice. Derived from
-# the rendered color pixels so both variants are guaranteed identical in shape.
-GREY_MIX = 0.62   # how much of the original luminance to keep
-GREY_BASE = 158   # mid-grey the remainder is pulled toward
+GREY_MIX = 0.62
+GREY_BASE = 158
 
 
 def to_grey(rows):

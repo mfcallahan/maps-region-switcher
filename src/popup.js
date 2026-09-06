@@ -1,5 +1,5 @@
 import { TAB_DEFAULTS, REGIONS } from "./defaults.js";
-import { stripRegionParam } from "./rules.js";
+import { stripRegionParam, isMapsUrl } from "./rules.js";
 
 const api = typeof browser !== "undefined" ? browser : chrome;
 
@@ -9,7 +9,8 @@ const els = {
   regionListbox: document.getElementById("regionListbox"),
   note: document.getElementById("note"),
   hint: document.getElementById("hint"),
-  refresh: document.getElementById("refresh")
+  refresh: document.getElementById("refresh"),
+  refreshLabel: document.getElementById("refreshLabel")
 };
 
 const REGION_BY_CODE = new Map(REGIONS.map((r) => [r.code, r]));
@@ -35,13 +36,6 @@ function render({ enabled, region }) {
   els.note.textContent = note;
   els.note.hidden = !note;
 }
-
-// --- Region combobox: one text field that IS the region picker, with a
-// custom filtered <ul role="listbox"> floating underneath it instead of a
-// native <select> dropdown. Typing filters REGIONS by partial or exact match
-// against the region's name or its two-letter code; the down-arrow icon next
-// to the field is purely visual (CSS-only rotation via :has()) so people
-// still recognize this as a dropdown, not just a text box. -------------------
 
 let filtered = [];
 let activeIndex = -1;
@@ -114,7 +108,7 @@ function commitRegion(code) {
 
 els.regionInput.addEventListener("focus", () => {
   els.regionInput.select();
-  openList(""); // show every region on focus; typing narrows from here
+  openList("");
 });
 
 els.regionInput.addEventListener("input", () => {
@@ -152,9 +146,6 @@ els.regionInput.addEventListener("keydown", (e) => {
   }
 });
 
-// The listbox's mousedown handler calls preventDefault() so the input never
-// blurs before a click on an option completes -- without that, blur's own
-// revert logic would close the list out from under the click.
 els.regionListbox.addEventListener("mousedown", (e) => {
   e.preventDefault();
   const li = e.target.closest(".region-option");
@@ -185,17 +176,21 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// --- Per-tab state -----------------------------------------------------
-// Every open Maps tab can be set to a different region independently. This
-// popup only ever edits ONE tab: whichever tab was active when the icon was
-// clicked. That per-tab state lives in the background script's
-// chrome.storage.session (not storage.local), keyed by tab id -- see
-// background.js and project memory: per_tab_regions.md.
 let activeTabId = null;
+let isActiveTabMaps = false;
 let currentState = TAB_DEFAULTS;
 
+function renderNotMaps() {
+  document.body.classList.add("not-maps");
+  els.note.hidden = false;
+  els.note.textContent =
+    "This extension only works with Google Maps.";
+  els.hint.textContent = "";
+  els.refreshLabel.textContent = "Open Maps";
+}
+
 async function applyPatch(patch) {
-  if (activeTabId == null) return;
+  if (activeTabId == null || !isActiveTabMaps) return;
 
   const next = { ...currentState, ...patch };
   currentState = next;
@@ -217,31 +212,26 @@ async function applyPatch(patch) {
 els.enabled.addEventListener("change", () => applyPatch({ enabled: els.enabled.checked }));
 
 els.refresh.addEventListener("click", async () => {
-  if (activeTabId != null) {
-    // A bare reload() re-requests whatever URL the tab is currently on --
-    // and that URL can still carry a "gl=" query param this extension (or
-    // Google's own replaceState) added earlier, even once the tab's rules
-    // have been turned off. Google Maps reads gl straight off the request
-    // URL regardless of whether our rule put it there, so turning the
-    // toggle off and then just reloading is not enough to get back to the
-    // native/default region -- the stale gl= has to be stripped first.
-    let tab;
-    try {
-      tab = await api.tabs.get(activeTabId);
-    } catch { /* tab may have closed between click and here */ }
+  if (!isActiveTabMaps || activeTabId == null) {
+    await api.tabs.create({ url: "https://www.google.com/maps" });
+    window.close();
+    return;
+  }
 
-    if (tab && tab.url) {
-      const next = stripRegionParam(tab.url);
-      if (next !== tab.url) {
-        await api.tabs.update(activeTabId, { url: next });
-      } else {
-        await api.tabs.reload(activeTabId);
-      }
+  let tab;
+  try {
+    tab = await api.tabs.get(activeTabId);
+  } catch { }
+
+  if (tab && tab.url) {
+    const next = stripRegionParam(tab.url);
+    if (next !== tab.url) {
+      await api.tabs.update(activeTabId, { url: next });
     } else {
       await api.tabs.reload(activeTabId);
     }
   } else {
-    await api.tabs.create({ url: "https://www.google.com/maps" });
+    await api.tabs.reload(activeTabId);
   }
   window.close();
 });
@@ -249,6 +239,12 @@ els.refresh.addEventListener("click", async () => {
 async function init() {
   const [tab] = await api.tabs.query({ active: true, currentWindow: true });
   activeTabId = tab ? tab.id : null;
+  isActiveTabMaps = isMapsUrl(tab && tab.url);
+
+  if (!isActiveTabMaps) {
+    renderNotMaps();
+    return;
+  }
 
   const { tabStates } = await api.storage.session.get({ tabStates: {} });
   currentState = (activeTabId != null && tabStates[activeTabId]) || TAB_DEFAULTS;

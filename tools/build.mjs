@@ -1,22 +1,3 @@
-// Assembles the per-browser dist/ folders from the shared src/ tree, then
-// zips each into dist/maps-region-switcher-<version>-<target>.zip.
-//
-// src/ is genuinely identical for both targets (background.js picks
-// `browser` vs `chrome` at runtime -- see the shim at the top of
-// background.js and popup.js), so the only thing that differs between
-// builds is which manifests/manifest.<target>.json gets copied in as
-// manifest.json. version is read from package.json rather than kept in
-// each manifest, so there is exactly one place that needs bumping.
-//
-// The zip step shells out to the system `zip` binary with COPYFILE_DISABLE=1
-// and `-X` (strip extra file attributes) rather than a bundled zip library,
-// specifically to avoid macOS embedding __MACOSX/._* AppleDouble
-// resource-fork sidecar files in the archive -- AMO's linter flags those as
-// "Hidden file" warnings, and plain `zip` (or Finder's "Compress") includes
-// them by default on macOS whenever a source file carries extended
-// attributes (quarantine flag, Finder tags, etc).
-//
-// Usage: node tools/build.mjs [chrome|firefox|all]   (default: all)
 import { readFile, writeFile, cp, rm, mkdir } from "node:fs/promises";
 import { rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -65,24 +46,21 @@ function rmSyncQuiet(p) {
   try {
     rmSync(p, { force: true });
   } catch {
-    // ignore
   }
 }
 
 for (const target of targets) {
+  const manifestPath = path.join("manifests", `manifest.${target}.json`);
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.version = version;
+  const manifestJson = JSON.stringify(manifest, null, 2) + "\n";
+  await writeFile(manifestPath, manifestJson);
+
   const outDir = path.join("dist", target);
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
   await cp("src", outDir, { recursive: true });
-
-  const manifest = JSON.parse(
-    await readFile(path.join("manifests", `manifest.${target}.json`), "utf8")
-  );
-  manifest.version = version;
-  await writeFile(
-    path.join(outDir, "manifest.json"),
-    JSON.stringify(manifest, null, 2) + "\n"
-  );
+  await writeFile(path.join(outDir, "manifest.json"), manifestJson);
   console.log(`Built dist/${target}/ (v${version})`);
 
   zipTarget(target);
