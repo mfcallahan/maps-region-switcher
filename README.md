@@ -11,7 +11,10 @@ https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbj
 
 ### Firefox
 
-(Pending Mozilla approval...)
+https://addons.mozilla.org/en-US/firefox/addon/maps-region-switcher/
+
+
+![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.jpg)
 
 The motivating case: Google Maps renders certain place names, labels, and
 other content differently depending on which region it associates with your
@@ -19,8 +22,6 @@ view. That variation is Google's own region-dependent behavior, not universal
 across regions, so switching the region parameter changes which version you
 see, using Google's own rendering for that region, not a workaround or an
 overlay.
-
-![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.jpg)
 
 <sup>Google Maps at `gl=CA`, rendered by Google exactly as it serves the map to
 Canada. The extension only asks for that version, it does not draw anything.</sup>
@@ -53,7 +54,7 @@ both gitignored scratch output, not committed to the repo.
 
 ### Chrome
 
-1. Type `chrome://extensions` into the address bar and press Enter.
+1. Navigate to `chrome://extensions`.
 2. Turn on **Developer mode**, the toggle in the top-right corner.
 3. Click **Load unpacked** and select the `dist/chrome` folder.
 4. The extension appears in your list, with its icon in the toolbar's
@@ -66,8 +67,7 @@ Developer mode turned on; switching it off disables sideloaded extensions.
 
 ### Firefox
 
-1. Type `about:debugging#/runtime/this-firefox` into the address bar and
-   press Enter.
+1. Navigate to `about:debugging#/runtime/this-firefox`.
 2. Click **Load Temporary Add-on...** and select `dist/firefox/manifest.json`.
 3. The extension loads immediately and its icon appears in the toolbar. Pin
    it the same way as any other Firefox toolbar icon.
@@ -194,7 +194,7 @@ After loading unpacked:
 4. **Rule matching.** `npm test` — or `node tools/test-rules.mjs` — checks both
    regexes against a corpus of real Maps URL shapes without needing a browser.
 
-Note that Google strips `gl` from the address bar after load (via
+Note that Google strips `gl` from the url in the address bar after load (via
 `replaceState`). That is cosmetic; the region is already applied. Because Maps
 is a single-page app, panning and searching after load keep the region in
 memory — only full reloads re-trigger the rule.
