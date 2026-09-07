@@ -3,7 +3,7 @@ import { rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
-const TARGETS = ["chrome", "firefox"];
+const TARGETS = ["chrome", "firefox", "edge"];
 const requested = process.argv[2] ?? "all";
 const targets = requested === "all" ? TARGETS : [requested];
 

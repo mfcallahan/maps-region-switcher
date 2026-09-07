@@ -200,7 +200,7 @@ check("a very large real tab id never produces an out-of-range rule id", () => {
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
-const TARGETS = ["chrome", "firefox"];
+const TARGETS = ["chrome", "firefox", "edge"];
 const manifest = (target) =>
   JSON.parse(readFileSync(join(ROOT, "manifests", `manifest.${target}.json`), "utf8"));
 const backgroundEntry = (m) => m.background.service_worker ?? m.background.scripts[0];
