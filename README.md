@@ -1,6 +1,6 @@
 # Maps Region Switcher
 
-A Chrome extension and Firefox add-on that loads Google Maps as it appears in another
+A browser extension that loads Google Maps as it appears in another
 country, by setting Google's own `gl` region parameter.
 
 ## Install
@@ -13,6 +13,9 @@ https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbj
 
 https://addons.mozilla.org/en-US/firefox/addon/maps-region-switcher/
 
+### Edge
+
+[Pending approval...]
 
 ![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.jpg)
 
@@ -47,8 +50,8 @@ language, with no additional handling required on the extension's part.
 
 Mainly useful for Firefox before the AMO listing is approved, or to try the
 latest `dev` branch in Chrome ahead of a Web Store release. This needs a
-build step -- clone the repo and run `npm run build:chrome` and/or
-`npm run build:firefox` first (see Layout below); each produces a
+build step -- clone the repo and run `npm run build:chrome`, `npm run build:firefox`,
+and/or `npm run build:edge` first (see Layout below); each produces a
 `dist/<target>/` folder plus a `dist/maps-region-switcher-<version>-<target>.zip`,
 both gitignored scratch output, not committed to the repo.
 
@@ -64,6 +67,18 @@ both gitignored scratch output, not committed to the repo.
 Chrome shows a one-time banner warning that "Developer mode extensions" are
 less safe -- expected for anything installed outside the Web Store. Leave
 Developer mode turned on; switching it off disables sideloaded extensions.
+
+### Edge
+
+1. Navigate to `edge://extensions`.
+2. Turn on **Developer mode**, the toggle in the left sidebar.
+3. Click **Load unpacked** and select the `dist/edge` folder.
+4. The extension appears in your list, with its icon in the toolbar's
+   extensions overflow menu. Click the pin icon next to it to keep it
+   visible.
+
+Edge shows the same "Developer mode extensions" warning Chrome does --
+expected for anything installed outside the Edge Add-ons store.
 
 ### Firefox
 
@@ -238,28 +253,32 @@ every Maps load.
 
 ## Layout
 
-One `src/` tree, shared by both browsers -- `background.js` and `popup.js`
-pick `browser` (Firefox) or `chrome` (Chrome) at runtime, so nothing in `src/`
-is browser-specific. Only the manifest differs, which is why it lives outside
-`src/` as two versions, merged in at build time.
+One `src/` tree, shared by all three targets -- `background.js` and `popup.js`
+pick `browser` (Firefox) or `chrome` (Chrome, Edge) at runtime, so nothing in
+`src/` is browser-specific. Only the manifest differs, which is why it lives
+outside `src/` as separate versions, merged in at build time. Edge is
+Chromium-based and uses the same manifest shape as Chrome (background.service_worker,
+no browser_specific_settings), so manifest.edge.json is effectively a copy of
+manifest.chrome.json kept as its own file for independent versioning.
 
 ```
 src/
-  background.js     service worker (Chrome) / event page (Firefox)
+  background.js     service worker (Chrome, Edge) / event page (Firefox)
   rules.js          rule construction + the two regexes
   defaults.js       default settings and the region list
   popup.html/.js    toolbar UI
   icons/            generated PNGs (color, plus -off grey variants)
 manifests/
   manifest.chrome.json    background.service_worker
+  manifest.edge.json      background.service_worker (same shape as Chrome)
   manifest.firefox.json   background.scripts + browser_specific_settings
 tools/
-  build.mjs           assembles dist/chrome/ and dist/firefox/ from the above,
-                      and zips each into dist/maps-region-switcher-<ver>-<target>.zip
+  build.mjs           assembles dist/chrome/, dist/edge/, and dist/firefox/ from
+                      the above, and zips each into dist/maps-region-switcher-<ver>-<target>.zip
   make_icons.py       regenerates both icon sets (stdlib only)
-  test-rules.mjs      regex corpus test + manifest/asset checks (both targets)
+  test-rules.mjs      regex corpus test + manifest/asset checks (all targets)
 dist/               build output, gitignored -- run `npm run build` (or
-                    `build:chrome` / `build:firefox` for a single target)
+                    `build:chrome` / `build:edge` / `build:firefox` for a single target)
 ```
 
 ## License
