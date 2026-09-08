@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "Diesen Tab neu laden, um die Änderung anzuwenden."
+  },
+  "applyErrorPrefix": {
+    "message": "Konnte nicht angewendet werden: "
+  },
+  "applyingHint": {
+    "message": "Wird angewendet…"
+  },
+  "describeDisabled": {
+    "message": "Google Maps wird in diesem Tab normal geladen und verwendet deinen eigenen Standort."
+  },
+  "enableToggleAriaLabel": {
+    "message": "Regionswechsel für diesen Tab aktivieren"
+  },
+  "extDescription": {
+    "message": "Zeigt Google Maps so an, wie es in einem anderen Land erscheint, indem beim Laden von Maps-Seiten der Regionsparameter festgelegt wird."
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "Keine passenden Regionen"
+  },
+  "notMapsMessage": {
+    "message": "Diese Erweiterung funktioniert nur mit Google Maps."
+  },
+  "openMapsLabel": {
+    "message": "Maps öffnen"
+  },
+  "popupSubtitle": {
+    "message": "Lädt Google Maps in diesem Tab so, wie es in einem anderen Land erscheint."
+  },
+  "refreshHint": {
+    "message": "Zum Anwenden aktualisieren"
+  },
+  "refreshLabel": {
+    "message": "Aktualisieren"
+  },
+  "regionInputAriaLabel": {
+    "message": "Region"
+  },
+  "unknownError": {
+    "message": "unbekannter Fehler"
+  }
+}

@@ -2,6 +2,7 @@ import { TAB_DEFAULTS, REGIONS } from "./defaults.js";
 import { stripRegionParam, isMapsUrl } from "./rules.js";
 
 const api = typeof browser !== "undefined" ? browser : chrome;
+const uiLanguage = api.i18n.getUILanguage();
 
 const els = {
   enabled: document.getElementById("enabled"),
@@ -10,16 +11,61 @@ const els = {
   note: document.getElementById("note"),
   hint: document.getElementById("hint"),
   refresh: document.getElementById("refresh"),
-  refreshLabel: document.getElementById("refreshLabel")
+  refreshLabel: document.getElementById("refreshLabel"),
+  popupTitle: document.getElementById("popupTitle"),
+  popupSubtitle: document.getElementById("popupSubtitle")
 };
 
+// A locale is RTL if its base language subtag is one of these.
+const RTL_LANGS = ["ar", "he", "fa", "ur"];
+
+function isRtl(lang) {
+  const base = lang.toLowerCase();
+  return RTL_LANGS.some((l) => base === l || base.startsWith(`${l}-`) || base.startsWith(`${l}_`));
+}
+
+function applyI18n() {
+  document.documentElement.lang = uiLanguage;
+  document.documentElement.dir = isRtl(uiLanguage) ? "rtl" : "ltr";
+
+  document.title = api.i18n.getMessage("extName");
+  els.popupTitle.textContent = api.i18n.getMessage("extName");
+  els.popupSubtitle.textContent = api.i18n.getMessage("popupSubtitle");
+  els.enabled.setAttribute("aria-label", api.i18n.getMessage("enableToggleAriaLabel"));
+  els.regionInput.setAttribute("aria-label", api.i18n.getMessage("regionInputAriaLabel"));
+  els.hint.textContent = api.i18n.getMessage("refreshHint");
+  els.refreshLabel.textContent = api.i18n.getMessage("refreshLabel");
+}
+
+applyI18n();
+
 const REGION_BY_CODE = new Map(REGIONS.map((r) => [r.code, r]));
-const labelFor = (r) => `${r.name} (${r.code})`;
+
+// Localized country names via the platform, so we don't have to maintain
+// translations for 243 region names ourselves. Falls back to the English
+// name in defaults.js if Intl.DisplayNames can't resolve a given code.
+let regionDisplayNames = null;
+try {
+  regionDisplayNames = new Intl.DisplayNames([uiLanguage], { type: "region" });
+} catch {
+  regionDisplayNames = null;
+}
+
+function localizedName(region) {
+  if (!regionDisplayNames) return null;
+  try {
+    return regionDisplayNames.of(region.code) || null;
+  } catch {
+    return null;
+  }
+}
+
+const labelFor = (r) => `${localizedName(r) || r.name} (${r.code})`;
 
 function describe(enabled) {
   return enabled
     ? ""
-    : "Google Maps loads normally in this tab, using your own location.";
+    : api.i18n.getMessage("describeDisabled");
 }
 
 function render({ enabled, region }) {
@@ -43,7 +89,8 @@ let activeIndex = -1;
 function matches(region, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return `${region.name} ${region.code}`.toLowerCase().includes(q);
+  const haystack = `${region.name} ${localizedName(region) || ""} ${region.code}`.toLowerCase();
+  return haystack.includes(q);
 }
 
 function renderListbox() {
@@ -51,7 +98,7 @@ function renderListbox() {
   if (filtered.length === 0) {
     const empty = document.createElement("li");
     empty.className = "region-listbox-empty";
-    empty.textContent = "No matching regions";
+    empty.textContent = api.i18n.getMessage("noMatchingRegions");
     els.regionListbox.append(empty);
     return;
   }
@@ -183,10 +230,9 @@ let currentState = TAB_DEFAULTS;
 function renderNotMaps() {
   document.body.classList.add("not-maps");
   els.note.hidden = false;
-  els.note.textContent =
-    "This extension only works with Google Maps.";
+  els.note.textContent = api.i18n.getMessage("notMapsMessage");
   els.hint.textContent = "";
-  els.refreshLabel.textContent = "Open Maps";
+  els.refreshLabel.textContent = api.i18n.getMessage("openMapsLabel");
 }
 
 async function applyPatch(patch) {
@@ -195,7 +241,7 @@ async function applyPatch(patch) {
   const next = { ...currentState, ...patch };
   currentState = next;
   render(next);
-  els.hint.textContent = "Applying…";
+  els.hint.textContent = api.i18n.getMessage("applyingHint");
 
   const result = await api.runtime.sendMessage({
     type: "setTabState",
@@ -205,8 +251,8 @@ async function applyPatch(patch) {
   });
 
   els.hint.textContent = result && result.ok
-    ? "Reload this tab to apply."
-    : `Couldn't apply: ${result?.error || "unknown error"}`;
+    ? api.i18n.getMessage("appliedHint")
+    : `${api.i18n.getMessage("applyErrorPrefix")}${result?.error || api.i18n.getMessage("unknownError")}`;
 }
 
 els.enabled.addEventListener("change", () => applyPatch({ enabled: els.enabled.checked }));

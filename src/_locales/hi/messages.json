@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "लागू करने के लिए इस टैब को रीफ़्रेश करें।"
+  },
+  "applyErrorPrefix": {
+    "message": "लागू नहीं हो सका: "
+  },
+  "applyingHint": {
+    "message": "लागू हो रहा है…"
+  },
+  "describeDisabled": {
+    "message": "इस टैब में Google मैप्स आपकी अपनी लोकेशन का उपयोग करके सामान्य रूप से लोड होता है।"
+  },
+  "enableToggleAriaLabel": {
+    "message": "इस टैब के लिए क्षेत्र बदलना चालू करें"
+  },
+  "extDescription": {
+    "message": "Maps पेज लोड होने पर क्षेत्र पैरामीटर सेट करके, Google मैप्स को किसी दूसरे देश में दिखने वाले रूप में दिखाता है।"
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "कोई मेल खाता क्षेत्र नहीं मिला"
+  },
+  "notMapsMessage": {
+    "message": "यह एक्सटेंशन केवल Google मैप्स के साथ काम करता है।"
+  },
+  "openMapsLabel": {
+    "message": "मैप्स खोलें"
+  },
+  "popupSubtitle": {
+    "message": "इस टैब में Google मैप्स को किसी दूसरे देश में दिखने वाले रूप में लोड करता है।"
+  },
+  "refreshHint": {
+    "message": "बदलाव लागू करने के लिए रीफ़्रेश करें"
+  },
+  "refreshLabel": {
+    "message": "रीफ़्रेश करें"
+  },
+  "regionInputAriaLabel": {
+    "message": "क्षेत्र"
+  },
+  "unknownError": {
+    "message": "अज्ञात त्रुटि"
+  }
+}

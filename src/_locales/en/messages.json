@@ -1,0 +1,62 @@
+{
+  "appliedHint": {
+    "description": "Footer hint shown after a change was applied successfully",
+    "message": "Reload this tab to apply."
+  },
+  "applyErrorPrefix": {
+    "description": "Prefix shown before an error message if applying a change fails",
+    "message": "Couldn't apply: "
+  },
+  "applyingHint": {
+    "description": "Footer hint shown while a change is being applied",
+    "message": "Applying…"
+  },
+  "describeDisabled": {
+    "description": "Note shown when region switching is disabled",
+    "message": "Google Maps loads normally in this tab, using your own location."
+  },
+  "enableToggleAriaLabel": {
+    "description": "Accessible label for the enable/disable toggle switch",
+    "message": "Enable region switching for this tab"
+  },
+  "extDescription": {
+    "description": "Extension description shown in the store listing",
+    "message": "View Google Maps as it appears in another country by setting the region parameter on Maps page loads."
+  },
+  "extName": {
+    "description": "Extension name",
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "description": "Shown in the region dropdown when a search matches nothing",
+    "message": "No matching regions"
+  },
+  "notMapsMessage": {
+    "description": "Note shown when the active tab is not a Google Maps page",
+    "message": "This extension only works with Google Maps."
+  },
+  "openMapsLabel": {
+    "description": "Footer button label when the active tab is not Google Maps, opens Maps instead",
+    "message": "Open Maps"
+  },
+  "popupSubtitle": {
+    "description": "Subtitle text under the popup title",
+    "message": "Loads Google Maps in this tab, as it appears in another country."
+  },
+  "refreshHint": {
+    "description": "Default footer hint text",
+    "message": "Refresh to apply changes"
+  },
+  "refreshLabel": {
+    "description": "Footer button label to reload the tab",
+    "message": "Refresh"
+  },
+  "regionInputAriaLabel": {
+    "description": "Accessible label for the region combobox input",
+    "message": "Region"
+  },
+  "unknownError": {
+    "description": "Fallback error text when no specific error message is available",
+    "message": "unknown error"
+  }
+}

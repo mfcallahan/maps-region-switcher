@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "刷新此标签页以应用更改。"
+  },
+  "applyErrorPrefix": {
+    "message": "应用失败："
+  },
+  "applyingHint": {
+    "message": "正在应用…"
+  },
+  "describeDisabled": {
+    "message": "此标签页中的 Google 地图将正常加载，使用您自己的位置。"
+  },
+  "enableToggleAriaLabel": {
+    "message": "为此标签页启用地区切换"
+  },
+  "extDescription": {
+    "message": "通过在加载地图页面时设置地区参数，让 Google 地图显示为其他国家/地区的版本。"
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "没有匹配的地区"
+  },
+  "notMapsMessage": {
+    "message": "此扩展程序仅适用于 Google 地图。"
+  },
+  "openMapsLabel": {
+    "message": "打开地图"
+  },
+  "popupSubtitle": {
+    "message": "在此标签页中加载 Google 地图，显示为其他国家/地区的版本。"
+  },
+  "refreshHint": {
+    "message": "刷新以应用更改"
+  },
+  "refreshLabel": {
+    "message": "刷新"
+  },
+  "regionInputAriaLabel": {
+    "message": "地区"
+  },
+  "unknownError": {
+    "message": "未知错误"
+  }
+}

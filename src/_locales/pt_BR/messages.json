@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "Recarregue esta guia para aplicar."
+  },
+  "applyErrorPrefix": {
+    "message": "Não foi possível aplicar: "
+  },
+  "applyingHint": {
+    "message": "Aplicando…"
+  },
+  "describeDisabled": {
+    "message": "O Google Maps carrega normalmente nesta guia, usando sua própria localização."
+  },
+  "enableToggleAriaLabel": {
+    "message": "Ativar a troca de região para esta guia"
+  },
+  "extDescription": {
+    "message": "Exibe o Google Maps como ele aparece em outro país, definindo o parâmetro de região ao carregar as páginas do Maps."
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "Nenhuma região encontrada"
+  },
+  "notMapsMessage": {
+    "message": "Esta extensão só funciona com o Google Maps."
+  },
+  "openMapsLabel": {
+    "message": "Abrir o Maps"
+  },
+  "popupSubtitle": {
+    "message": "Carrega o Google Maps nesta guia como ele aparece em outro país."
+  },
+  "refreshHint": {
+    "message": "Atualize para aplicar as alterações"
+  },
+  "refreshLabel": {
+    "message": "Atualizar"
+  },
+  "regionInputAriaLabel": {
+    "message": "Região"
+  },
+  "unknownError": {
+    "message": "erro desconhecido"
+  }
+}

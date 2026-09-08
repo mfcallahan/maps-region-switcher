@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "أعد تحميل هذا التبويب لتطبيق التغيير."
+  },
+  "applyErrorPrefix": {
+    "message": "تعذّر التطبيق: "
+  },
+  "applyingHint": {
+    "message": "جارٍ التطبيق…"
+  },
+  "describeDisabled": {
+    "message": "يتم تحميل خرائط Google في هذا التبويب بشكل طبيعي، باستخدام موقعك الفعلي."
+  },
+  "enableToggleAriaLabel": {
+    "message": "تفعيل تبديل المنطقة لهذا التبويب"
+  },
+  "extDescription": {
+    "message": "يعرض خرائط Google كما تظهر في بلد آخر، وذلك بضبط معلمة المنطقة عند تحميل صفحات الخرائط."
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "لا توجد مناطق مطابقة"
+  },
+  "notMapsMessage": {
+    "message": "لا تعمل هذه الإضافة إلا مع خرائط Google."
+  },
+  "openMapsLabel": {
+    "message": "فتح الخرائط"
+  },
+  "popupSubtitle": {
+    "message": "يحمّل خرائط Google في هذا التبويب كما تظهر في بلد آخر."
+  },
+  "refreshHint": {
+    "message": "أعد التحديث لتطبيق التغييرات"
+  },
+  "refreshLabel": {
+    "message": "تحديث"
+  },
+  "regionInputAriaLabel": {
+    "message": "المنطقة"
+  },
+  "unknownError": {
+    "message": "خطأ غير معروف"
+  }
+}

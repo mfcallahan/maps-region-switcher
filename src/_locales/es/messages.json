@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "Recarga esta pestaña para aplicar los cambios."
+  },
+  "applyErrorPrefix": {
+    "message": "No se pudo aplicar: "
+  },
+  "applyingHint": {
+    "message": "Aplicando…"
+  },
+  "describeDisabled": {
+    "message": "Google Maps se carga con normalidad en esta pestaña, usando tu propia ubicación."
+  },
+  "enableToggleAriaLabel": {
+    "message": "Activar el cambio de región para esta pestaña"
+  },
+  "extDescription": {
+    "message": "Muestra Google Maps tal y como aparece en otro país, estableciendo el parámetro de región al cargar la página de Maps."
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "No hay regiones coincidentes"
+  },
+  "notMapsMessage": {
+    "message": "Esta extensión solo funciona con Google Maps."
+  },
+  "openMapsLabel": {
+    "message": "Abrir Maps"
+  },
+  "popupSubtitle": {
+    "message": "Carga Google Maps en esta pestaña tal como aparece en otro país."
+  },
+  "refreshHint": {
+    "message": "Actualiza para aplicar los cambios"
+  },
+  "refreshLabel": {
+    "message": "Actualizar"
+  },
+  "regionInputAriaLabel": {
+    "message": "Región"
+  },
+  "unknownError": {
+    "message": "error desconocido"
+  }
+}
