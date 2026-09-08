@@ -1,23 +1,20 @@
 # Maps Region Switcher
 
-A browser extension that loads Google Maps as it appears in another
-country, by setting Google's own `gl` region parameter.
+A free and open source browser extension that loads Google Maps as it appears in another
+country, by setting Google's region parameter. Available for Chrome, Firefox, and Edge.
 
 ## Install
 
-### Chrome
+- [**Chrome**](https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbjefifbjaopmgcfd)
+- [**Firefox**](https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbjefifbjaopmgcfd)
+- [**Edge**](https://microsoftedge.microsoft.com/addons/detail/ljmehlelmabkidhifpfhpnnkijnkpkep)
 
-https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbjefifbjaopmgcfd
-
-### Firefox
-
-https://addons.mozilla.org/en-US/firefox/addon/maps-region-switcher/
-
-### Edge
-
-[Pending approval...]
+### Screenshot
 
 ![Google Maps loaded with the region set to Canada, the extension popup open in the toolbar](https://raw.githubusercontent.com/mfcallahan/maps-region-switcher/master/screenshots/chrome/screenshot1.jpg)
+
+<sup>Google Maps at `gl=CA`, rendered by Google exactly as it serves the map to
+Canada. The extension only asks for that version, it does not draw anything.</sup>
 
 The motivating case: Google Maps renders certain place names, labels, and
 other content differently depending on which region it associates with your
@@ -25,9 +22,6 @@ view. That variation is Google's own region-dependent behavior, not universal
 across regions, so switching the region parameter changes which version you
 see, using Google's own rendering for that region, not a workaround or an
 overlay.
-
-<sup>Google Maps at `gl=CA`, rendered by Google exactly as it serves the map to
-Canada. The extension only asks for that version, it does not draw anything.</sup>
 
 ## Why this approach?
 
