@@ -6,7 +6,7 @@ country, by setting Google's region parameter. Available for Chrome, Firefox, an
 ## Install
 
 - [**Chrome**](https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbjefifbjaopmgcfd)
-- [**Firefox**](https://chromewebstore.google.com/detail/maps-region-switcher/fmbelciakdlpbepnbjefifbjaopmgcfd)
+- [**Firefox**](https://addons.mozilla.org/en-US/firefox/addon/maps-region-switcher)
 - [**Edge**](https://microsoftedge.microsoft.com/addons/detail/ljmehlelmabkidhifpfhpnnkijnkpkep)
 
 ### Screenshot
