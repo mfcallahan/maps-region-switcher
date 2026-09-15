@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "Actualisez cet onglet pour appliquer les changements."
+  },
+  "applyErrorPrefix": {
+    "message": "Échec de l'application : "
+  },
+  "applyingHint": {
+    "message": "Application en cours…"
+  },
+  "describeDisabled": {
+    "message": "Google Maps se charge normalement dans cet onglet, en utilisant votre position."
+  },
+  "enableToggleAriaLabel": {
+    "message": "Activer le changement de région pour cet onglet"
+  },
+  "extDescription": {
+    "message": "Affiche Google Maps tel qu'il apparaît dans un autre pays, en définissant le paramètre de région lors du chargement des pages Maps."
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "Aucune région correspondante"
+  },
+  "notMapsMessage": {
+    "message": "Cette extension fonctionne uniquement avec Google Maps."
+  },
+  "openMapsLabel": {
+    "message": "Ouvrir Maps"
+  },
+  "popupSubtitle": {
+    "message": "Charge Google Maps dans cet onglet tel qu'il apparaît dans un autre pays."
+  },
+  "refreshHint": {
+    "message": "Actualisez pour appliquer les modifications"
+  },
+  "refreshLabel": {
+    "message": "Actualiser"
+  },
+  "regionInputAriaLabel": {
+    "message": "Région"
+  },
+  "unknownError": {
+    "message": "erreur inconnue"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "적용하려면 이 탭을 새로고침하세요."
+  },
+  "applyErrorPrefix": {
+    "message": "적용할 수 없음: "
+  },
+  "applyingHint": {
+    "message": "적용 중…"
+  },
+  "describeDisabled": {
+    "message": "이 탭에서는 사용자의 위치를 사용하여 Google 지도가 정상적으로 로드됩니다."
+  },
+  "enableToggleAriaLabel": {
+    "message": "이 탭의 지역 전환 사용"
+  },
+  "extDescription": {
+    "message": "지도 페이지를 불러올 때 지역 매개변수를 설정하여 다른 국가에서 보이는 것처럼 Google 지도를 표시합니다."
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "일치하는 지역이 없습니다"
+  },
+  "notMapsMessage": {
+    "message": "이 확장 프로그램은 Google 지도에서만 작동합니다."
+  },
+  "openMapsLabel": {
+    "message": "지도 열기"
+  },
+  "popupSubtitle": {
+    "message": "이 탭에서 다른 국가에서 보이는 것처럼 Google 지도를 불러옵니다."
+  },
+  "refreshHint": {
+    "message": "변경사항을 적용하려면 새로고침하세요"
+  },
+  "refreshLabel": {
+    "message": "새로고침"
+  },
+  "regionInputAriaLabel": {
+    "message": "지역"
+  },
+  "unknownError": {
+    "message": "알 수 없는 오류"
+  }
+}

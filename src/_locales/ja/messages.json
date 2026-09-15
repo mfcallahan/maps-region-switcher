@@ -1,0 +1,47 @@
+{
+  "appliedHint": {
+    "message": "適用するにはこのタブを更新してください。"
+  },
+  "applyErrorPrefix": {
+    "message": "適用できませんでした: "
+  },
+  "applyingHint": {
+    "message": "適用中…"
+  },
+  "describeDisabled": {
+    "message": "このタブでは、ご自身の位置情報を使用して Google マップが通常どおり読み込まれます。"
+  },
+  "enableToggleAriaLabel": {
+    "message": "このタブの地域切り替えを有効にする"
+  },
+  "extDescription": {
+    "message": "Maps のページ読み込み時に地域パラメータを設定することで、他の国での表示を再現して Google マップを表示します。"
+  },
+  "extName": {
+    "message": "Maps Region Switcher"
+  },
+  "noMatchingRegions": {
+    "message": "該当する地域がありません"
+  },
+  "notMapsMessage": {
+    "message": "この拡張機能は Google マップでのみ動作します。"
+  },
+  "openMapsLabel": {
+    "message": "マップを開く"
+  },
+  "popupSubtitle": {
+    "message": "このタブで、他の国での表示のように Google マップを読み込みます。"
+  },
+  "refreshHint": {
+    "message": "変更を適用するには更新してください"
+  },
+  "refreshLabel": {
+    "message": "更新"
+  },
+  "regionInputAriaLabel": {
+    "message": "地域"
+  },
+  "unknownError": {
+    "message": "不明なエラー"
+  }
+}
