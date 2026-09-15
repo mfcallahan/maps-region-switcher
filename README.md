@@ -106,7 +106,7 @@ the region picker sits below it and greys out while the extension is off.
 | --- | --- |
 | <img src="./screenshots/chrome/screenshot4.jpg" alt="The extension popup open in Chrome, toggled on with region Canada (CA)" width="420"> | <img src="./screenshots/firefox/screenshot1.jpg" alt="The same popup in Firefox, toggled on with region Canada (CA)" width="420"> |
 
-The same popup, same code, in both browsers — `popup.js` picks the `browser` or
+The same popup, same code, in both browsers: `popup.js` picks the `browser` or
 `chrome` namespace at runtime, so nothing in `src/` is browser-specific.
 `Refresh` reloads the current Maps tab, since the region only applies on page
 load.
@@ -137,15 +137,15 @@ Two dynamic `declarativeNetRequest` rules, rebuilt from `chrome.storage.local`
 | Redirect | 1 | `redirect` | Any top-level Maps navigation |
 
 The redirect uses `queryTransform.addOrReplaceParams`, so it only ever touches
-the query string — Maps keeps its `!`-encoded data in *path* segments, which are
-left alone. It applies to every Maps load, everywhere — there is no scoping.
+the query string. Maps keeps its `!`-encoded data in *path* segments, which are
+left alone. It applies to every Maps load, everywhere and there is no scoping.
 
 An earlier version restricted the redirect to a small set of hard-coded map
 viewports, on the theory that changing `gl` invalidated the basemap tile
 cache and caused the map to blank while zooming. Both parts of that turned
 out wrong: the blanking happens with the extension disabled too (it's Google
 Maps' own rendering), and the scoped rule rarely fired anyway, because Maps is
-a single-page app — searching or panning to a new place doesn't produce a new
+a single-page app, searching or panning to a new place doesn't produce a new
 navigation for a URL-based rule to match. The option was removed rather than
 left as a checkbox that mostly did nothing.
 
@@ -157,7 +157,7 @@ gl=CA:   ...!3i792558794!3m7!2sen!5e1105!12m4...
                          ^^^ region field gone
 ```
 
-That's real and inherent — different labels require different tiles — but it's
+That's real and inherent, different labels require different tiles, but it's
 a one-time refetch per tile, not the zoom-blanking behaviour above.
 
 The guard rule is the loop protection. Without it we would be relying on the
@@ -166,7 +166,7 @@ an explicit higher-priority `allow` is the deterministic way to stop processing
 a request that has already been rewritten.
 
 The region has to be present on the **initial document request**, which is why
-this is DNR and not a content script — a content script runs long after the
+this is DNR and not a content script; a content script runs long after the
 region has been resolved.
 
 ## Testing
@@ -200,13 +200,13 @@ After loading unpacked:
    ```
 
    Either way, expect two rules, ids `1` and `2`.
-4. **Rule matching.** `npm test` — or `node tools/test-rules.mjs` — checks both
+4. **Rule matching.** `npm test` or `node tools/test-rules.mjs` checks both
    regexes against a corpus of real Maps URL shapes without needing a browser.
 
 Note that Google strips `gl` from the url in the address bar after load (via
 `replaceState`). That is cosmetic; the region is already applied. Because Maps
 is a single-page app, panning and searching after load keep the region in
-memory — only full reloads re-trigger the rule.
+memory. Only full reloads re-trigger the rule.
 
 ## Settings storage
 
@@ -277,4 +277,4 @@ dist/               build output, gitignored -- run `npm run build` (or
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE)
